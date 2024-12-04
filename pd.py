@@ -171,7 +171,8 @@ class Decoder(srd.Decoder):
                     self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
                              [anno_loc, [normalize_time(idle_duration)]])
 
-                if self.state != State.S0ends and self.state != State.S1 and self.state != State.S0:
+                if (self.state != State.S0ends and self.state != State.S1
+                        and self.state != State.S0):
                     self.state = State.S0starts
                     self.put_text(self.samplenum, 0,
                                   's0')
@@ -179,10 +180,6 @@ class Decoder(srd.Decoder):
                     # keep starting sample for later use
                     self.idle_samplenum = self.samplenum
                     bitposition = 1
-
-                    ext = pins[Pin.EXT]
-                    self.put_text(self.samplenum, 1, str(bitposition)+":"+str(ext))
-                    bitposition += 1
 
             # raising edge of IDLE?
             if (idle == 1) and (self.last_idle == 0):
@@ -196,7 +193,8 @@ class Decoder(srd.Decoder):
             # falling edge of PHI1 ?
             phi1 = pins[Pin.PHI1]
             if (phi1 == 0) and (self.last_phi1 == 1):
-                if self.state == State.S1 or self.state == State.S0:
+                if (self.state == State.S1 or self.state == State.S0
+                        or self.state == State.S0ends or self.state == State.S0starts) :
                     ext = pins[Pin.EXT]
                     self.put_text(self.samplenum, 1, str(bitposition)+":"+str(ext))
                     bitposition += 1
