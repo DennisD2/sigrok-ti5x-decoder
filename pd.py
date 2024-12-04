@@ -110,8 +110,8 @@ class Decoder(srd.Decoder):
     annotation_rows = (
         ('state', 'State', (0,)),
         ('bits', 'Bits', (1,)),
-        ('calc', 'Calculate', (2,)),
-        ('disp', 'Display', (3,)),
+        ('calc', 'Timing Calculate', (2,)),
+        ('disp', 'Timing Display', (3,)),
         ('warnings', 'Warnings', (4,)),
         ('errors', 'Errors', (5,)),
     )
@@ -200,11 +200,12 @@ class Decoder(srd.Decoder):
             if (phi1 == 0) and (self.last_phi1 == 1):
                 if (self.state == State.S1 or self.state == State.S0
                         or self.state == State.S0ends or self.state == State.S0starts) :
-                    ext = pins[Pin.EXT]
-                    self.put_text(self.samplenum, AnnoRowPos.BITS, str(bitposition)+":"+str(ext))
-                    if bitposition>16:
-                        self.put_text(self.samplenum, AnnoRowPos.ERROR, "Illegal bit position: " + str(bitposition))
-                    bitposition += 1
+                    if bitposition<=16 or (not idle or ((idle == 1) and (self.last_idle == 0))):
+                        ext = pins[Pin.EXT]
+                        self.put_text(self.samplenum, AnnoRowPos.BITS, str(bitposition)+":"+str(ext))
+                        if bitposition>16:
+                            self.put_text(self.samplenum, AnnoRowPos.ERROR, "Illegal bit position: " + str(bitposition))
+                        bitposition += 1
             self.last_idle = idle
             self.last_phi1 = phi1
 
