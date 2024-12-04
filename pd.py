@@ -151,7 +151,7 @@ class Decoder(srd.Decoder):
             # falling edge of IDLE ?
             if (idle == 0) and (self.last_idle == 1):
                 if self.state == State.S0ends:
-                    self.state = State.S0starts
+                    self.state = State.S1
                     # S0end state: now calculate length of idle period
                     idle_duration = (self.samplenum - self.idle_samplenum) / self.samplerate
                     end_anno_sample = self.samplenum
@@ -182,6 +182,9 @@ class Decoder(srd.Decoder):
                 if self.state == State.S0:
                     # if we are in S0, then we move to S0end
                     self.state = State.S0ends
+                if self.state == State.S1:
+                    # if we are in S0, then we move to S0end
+                    self.state = State.S0starts
 
             # falling edge of PHI1 ?
             phi1 = pins[Pin.PHI1]
