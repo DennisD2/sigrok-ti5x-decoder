@@ -153,7 +153,7 @@ class Decoder(srd.Decoder):
             # falling edge of IDLE ?
             if (idle == 0) and (self.last_idle == 1):
                 if self.state == State.S0ends:
-                    self.state = State.S1
+                    self.state = State.S0starts
                     # S0end state: now calculate length of idle period
                     idle_duration = (self.samplenum - self.idle_samplenum) / self.samplerate
                     end_anno_sample = self.samplenum
@@ -171,7 +171,7 @@ class Decoder(srd.Decoder):
                     self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
                              [anno_loc, [normalize_time(idle_duration)]])
 
-                if self.state != State.S0ends and self.state != State.S1:
+                if self.state != State.S0ends and self.state != State.S1 and self.state != State.S0:
                     self.state = State.S0starts
                     self.put_text(self.samplenum, 0,
                                   's0')
@@ -179,6 +179,10 @@ class Decoder(srd.Decoder):
                     # keep starting sample for later use
                     self.idle_samplenum = self.samplenum
                     bitposition = 1
+
+                    ext = pins[Pin.EXT]
+                    self.put_text(self.samplenum, 1, str(bitposition)+":"+str(ext))
+                    bitposition += 1
 
             # raising edge of IDLE?
             if (idle == 1) and (self.last_idle == 0):
