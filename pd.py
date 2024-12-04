@@ -137,6 +137,8 @@ class Decoder(srd.Decoder):
         if not self.samplerate:
             raise SamplerateError('Cannot decode without samplerate.')
 
+        bitposition = 0
+
         while True:
             pins = self.wait()
             idle = pins[Pin.IDLE]
@@ -176,6 +178,7 @@ class Decoder(srd.Decoder):
                     self.state = State.S0
                     # keep starting sample for later use
                     self.idle_samplenum = self.samplenum
+                    bitposition = 1
 
             # raising edge of IDLE?
             if (idle == 1) and (self.last_idle == 0):
@@ -189,10 +192,10 @@ class Decoder(srd.Decoder):
             # falling edge of PHI1 ?
             phi1 = pins[Pin.PHI1]
             if (phi1 == 0) and (self.last_phi1 == 1):
-                if self.state == State.S1:
+                if self.state == State.S1 or self.state == State.S0:
                     ext = pins[Pin.EXT]
-                    self.put_text(self.samplenum, 1, str(ext))
-
+                    self.put_text(self.samplenum, 1, str(bitposition)+":"+str(ext))
+                    bitposition += 1
             self.last_idle = idle
             self.last_phi1 = phi1
 
