@@ -40,6 +40,9 @@ class Pin:
 class Mode:
     CALCULATE, DISPLAY = range(2)
 
+class AnnoRowPos:
+    STATE, BITS, CALC, DISP, WARN, ERROR = range(6)
+
 # Provide custom format type 'H' for hexadecimal output
 # with leading decimal digit (assembler syntax).
 class AsmFormatter(string.Formatter):
@@ -101,14 +104,16 @@ class Decoder(srd.Decoder):
         ('calculate', 'calculate mode'),
         ('display', 'display mode'),
         ('warning', 'Warning'),
+        ('error', 'Error'),
     )
 
     annotation_rows = (
-        ('state', 'S', (0,)),
+        ('state', 'State', (0,)),
         ('bits', 'Bits', (1,)),
         ('calc', 'Calculate', (2,)),
         ('disp', 'Display', (3,)),
-        ('warnings', 'Warnings', (4,))
+        ('warnings', 'Warnings', (4,)),
+        ('errors', 'Errors', (5,)),
     )
 
     def __init__(self):
@@ -162,9 +167,9 @@ class Decoder(srd.Decoder):
                     anno_loc = 0
                     if idle_duration < 10e-6:
                         self.mode = Mode.CALCULATE
-                        anno_loc = 2
+                        anno_loc = AnnoRowPos.CALC
                     else:
-                        anno_loc = 3
+                        anno_loc = AnnoRowPos.DISP
                         self.mode = Mode.DISPLAY
 
                     # put annotation to starting sample
@@ -174,7 +179,7 @@ class Decoder(srd.Decoder):
                 if (self.state != State.S0ends and self.state != State.S1
                         and self.state != State.S0):
                     self.state = State.S0starts
-                    self.put_text(self.samplenum, 0,
+                    self.put_text(self.samplenum, AnnoRowPos.STATE,
                                   's0')
                     self.state = State.S0
                     # keep starting sample for later use
@@ -196,7 +201,9 @@ class Decoder(srd.Decoder):
                 if (self.state == State.S1 or self.state == State.S0
                         or self.state == State.S0ends or self.state == State.S0starts) :
                     ext = pins[Pin.EXT]
-                    self.put_text(self.samplenum, 1, str(bitposition)+":"+str(ext))
+                    self.put_text(self.samplenum, AnnoRowPos.BITS, str(bitposition)+":"+str(ext))
+                    if bitposition>16:
+                        self.put_text(self.samplenum, AnnoRowPos.ERROR, "Illegal bit position: " + str(bitposition))
                     bitposition += 1
             self.last_idle = idle
             self.last_phi1 = phi1
