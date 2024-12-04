@@ -114,6 +114,7 @@ class Decoder(srd.Decoder):
     def __init__(self):
         self.state = 'INIT'
         self.last_idle = 0
+        self.last_phi1 = 0
         self.idle_samplenum = 0
         self.mode = Mode.CALCULATE
 
@@ -138,13 +139,13 @@ class Decoder(srd.Decoder):
 
         while True:
             pins = self.wait()
-            #phi1 = pins[Pin.PHI1]
             idle = pins[Pin.IDLE]
 
             if (self.state == State.INIT):
                 self.state = State.INIT1
                 # initialize last_* values
                 self.last_idle = idle
+                self.last_phi1 = phi1
                 self.idle_samplenum = self.samplenum
 
             # falling edge of IDLE ?
@@ -168,8 +169,7 @@ class Decoder(srd.Decoder):
                     self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
                              [anno_loc, [normalize_time(idle_duration)]])
 
-            if (idle == 0) and (self.last_idle == 1):
-                if self.state != State.S0ends:
+                if self.state != State.S0ends and self.state != State.S1:
                     self.state = State.S0starts
                     self.put_text(self.samplenum, 0,
                                   's0')
@@ -183,5 +183,13 @@ class Decoder(srd.Decoder):
                     # if we are in S0, then we move to S0end
                     self.state = State.S0ends
 
+            # falling edge of PHI1 ?
+            phi1 = pins[Pin.PHI1]
+            if (phi1 == 0) and (self.last_phi1 == 1):
+                if self.state == State.S1:
+                    ext = pins[Pin.EXT]
+                    self.put_text(self.samplenum, 1, str(ext))
+
             self.last_idle = idle
+            self.last_phi1 = phi1
 
