@@ -41,7 +41,7 @@ class Mode:
     CALCULATE, DISPLAY = range(2)
 
 class AnnoRowPos:
-    STATE, BITS, CALC, DISP, WARN, ERROR = range(6)
+    STATE, EXTBITS, IRGBITS, CALC, DISP, TIMING, WARN, ERROR = range(8)
 
 # Provide custom format type 'H' for hexadecimal output
 # with leading decimal digit (assembler syntax).
@@ -100,20 +100,25 @@ class Decoder(srd.Decoder):
     optional_channels = ()
     annotations = (
         ('s0', 'Start of instruction cycle'),
+        ('extbit', 'EXT line data bits'),
+        ('irgbit', 'IRG line data bits'),
         ('bitdata', 'data bits'),
         ('calculate', 'calculate mode'),
         ('display', 'display mode'),
+        ('timing', 'Timing'),
         ('warning', 'Warning'),
         ('error', 'Error'),
     )
 
     annotation_rows = (
         ('state', 'State', (0,)),
-        ('bits', 'Bits', (1,)),
-        ('calc', 'Timing Calculate', (2,)),
-        ('disp', 'Timing Display', (3,)),
-        ('warnings', 'Warnings', (4,)),
-        ('errors', 'Errors', (5,)),
+        ('extbits', 'EXT', (1,)),
+        ('irgbits', 'IRG', (2,)),
+        ('calc', 'Timing Calculate', (3,)),
+        ('disp', 'Timing Display', (4,)),
+        ('timings', 'Timings', (5,)),
+        ('warnings', 'Warnings', (6,)),
+        ('errors', 'Errors', (7,)),
     )
 
     def __init__(self):
@@ -143,6 +148,7 @@ class Decoder(srd.Decoder):
             raise SamplerateError('Cannot decode without samplerate.')
 
         bitposition = 0
+        extBits = ""
 
         while True:
             pins = self.wait()
@@ -176,6 +182,10 @@ class Decoder(srd.Decoder):
                     self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
                              [anno_loc, [normalize_time(idle_duration)]])
 
+                    self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
+                             [AnnoRowPos.EXTBITS, [extBits]])
+                    extBits = ""
+
                 if (self.state != State.S0ends and self.state != State.S1
                         and self.state != State.S0):
                     self.state = State.S0starts
@@ -202,7 +212,9 @@ class Decoder(srd.Decoder):
                         or self.state == State.S0ends or self.state == State.S0starts) :
                     if bitposition<=16 or (not idle or ((idle == 1) and (self.last_idle == 0))):
                         ext = pins[Pin.EXT]
-                        self.put_text(self.samplenum, AnnoRowPos.BITS, str(bitposition)+":"+str(ext))
+                        #self.put_text(self.samplenum, AnnoRowPos.BITS, str(bitposition)+":"+str(ext))
+                        extBits = extBits + str(ext)
+
                         if bitposition>16:
                             self.put_text(self.samplenum, AnnoRowPos.ERROR, "Illegal bit position: " + str(bitposition))
                         bitposition += 1
