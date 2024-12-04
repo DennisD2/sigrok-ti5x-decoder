@@ -149,6 +149,7 @@ class Decoder(srd.Decoder):
 
         bitposition = 0
         extBits = ""
+        irgBits = ""
 
         while True:
             pins = self.wait()
@@ -187,6 +188,15 @@ class Decoder(srd.Decoder):
                     self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
                              [AnnoRowPos.EXTBITS, [extBits]])
                     extBits = ""
+                    # IRG line value annotation
+                    self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
+                             [AnnoRowPos.IRGBITS, [irgBits]])
+                    if irgBits == "0001111110000011":
+                    #if irgBits == "0000011000000000":
+                        #self.put_text(self.idle_samplenum, AnnoRowPos.WARN, "BRANCH 0N C -1F" )
+                        self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
+                                 [AnnoRowPos.WARN, ["BRANCH 0N C -1F"]])
+                    irgBits = ""
 
                 if (self.state != State.S0ends and self.state != State.S1
                         and self.state != State.S0):
@@ -213,9 +223,12 @@ class Decoder(srd.Decoder):
                 if (self.state == State.S1 or self.state == State.S0
                         or self.state == State.S0ends or self.state == State.S0starts) :
                     if bitposition<=16 or (not idle or ((idle == 1) and (self.last_idle == 0))):
+                        # EXT line bit
                         ext = pins[Pin.EXT]
-                        #self.put_text(self.samplenum, AnnoRowPos.BITS, str(bitposition)+":"+str(ext))
                         extBits = extBits + str(ext)
+                        # IRG line bit
+                        irg = pins[Pin.IRG]
+                        irgBits = irgBits + str(irg)
                         if bitposition>16:
                             self.put_text(self.samplenum, AnnoRowPos.ERROR, "Illegal bit position: " + str(bitposition))
                         bitposition += 1
