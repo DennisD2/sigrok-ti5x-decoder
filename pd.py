@@ -171,6 +171,8 @@ class Decoder(srd.Decoder):
                     if (end_anno_sample-self.idle_samplenum) < 10:
                         end_anno_sample = self.idle_samplenum+10
                     anno_loc = 0
+                    # TODO should be derived from S1/S15 IDLE line raise
+                    # I have some poor hardcoding for now
                     if idle_duration < 10e-6:
                         self.mode = Mode.CALCULATE
                         anno_loc = AnnoRowPos.CALC
@@ -178,10 +180,10 @@ class Decoder(srd.Decoder):
                         anno_loc = AnnoRowPos.DISP
                         self.mode = Mode.DISPLAY
 
-                    # put annotation to starting sample
+                    # timing annotation (attached to starting sample)
                     self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
                              [anno_loc, [normalize_time(idle_duration)]])
-
+                    # EXT line value annotation
                     self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
                              [AnnoRowPos.EXTBITS, [extBits]])
                     extBits = ""
@@ -214,7 +216,6 @@ class Decoder(srd.Decoder):
                         ext = pins[Pin.EXT]
                         #self.put_text(self.samplenum, AnnoRowPos.BITS, str(bitposition)+":"+str(ext))
                         extBits = extBits + str(ext)
-
                         if bitposition>16:
                             self.put_text(self.samplenum, AnnoRowPos.ERROR, "Illegal bit position: " + str(bitposition))
                         bitposition += 1
