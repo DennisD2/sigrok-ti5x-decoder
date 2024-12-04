@@ -179,8 +179,8 @@ class Decoder(srd.Decoder):
 
             # raising edge of IDLE?
             if (idle == 1) and (self.last_idle == 0):
-                # if we are in S0, then we move to S0end
                 if self.state == State.S0:
+                    # if we are in S0, then we move to S0end
                     self.state = State.S0ends
 
             self.last_idle = idle
