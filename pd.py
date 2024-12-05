@@ -184,6 +184,16 @@ class Decoder(srd.Decoder):
                     # timing annotation (attached to starting sample)
                     self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
                              [anno_loc, [normalize_time(idle_duration)]])
+
+                    if bitposition<17:
+                        self.put_text(self.idle_samplenum, AnnoRowPos.ERROR, "Less than 16 bits: " + str(bitposition-1))
+                        # EXT line bit
+                        ext = pins[Pin.EXT]
+                        extBits = extBits + str(ext)
+                        # IRG line bit
+                        irg = pins[Pin.IRG]
+                        irgBits = irgBits + str(irg)
+
                     # EXT line value annotation
                     self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
                              [AnnoRowPos.EXTBITS, [extBits]])
@@ -198,9 +208,6 @@ class Decoder(srd.Decoder):
                         self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
                                  [AnnoRowPos.WARN, ["XXX"]])
                     irgBits = ""
-
-                    if bitposition<17:
-                        self.put_text(self.idle_samplenum, AnnoRowPos.ERROR, "Less than 16 bits: " + str(bitposition-1))
 
                 if (self.state != State.S0ends and self.state != State.S1
                         and self.state != State.S0):
@@ -221,10 +228,10 @@ class Decoder(srd.Decoder):
                     # if we are in S0, then we move to S0end
                     self.state = State.S0starts
 
-            # falling edge of PHI1 ?
             phi1 = pins[Pin.PHI1]
-            if self.state != State.INIT or self.state != State.INIT1:
-                if (phi1 == 0) and (self.last_phi1 == 1):
+            if self.state != State.INIT and self.state != State.INIT1:
+                # falling edge of PHI1 ?
+                if phi1 == 0 and self.last_phi1 == 1:
                     if bitposition>16:
                         # strange extra bits
                         self.put_text(self.idle_samplenum, AnnoRowPos.ERROR, "Illegal bit position: " + str(bitposition))
@@ -244,6 +251,7 @@ class Decoder(srd.Decoder):
                         irgBits += "."
 
                     bitposition += 1
+
             self.last_idle = idle
             self.last_phi1 = phi1
 
