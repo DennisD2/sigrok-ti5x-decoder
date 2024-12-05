@@ -292,6 +292,6 @@ class Decoder(srd.Decoder):
         #if "0101" in irgBits2: # testing code
         #    annoText = "TEST"
         if "0111100001010" in irgBits2:  # "LOAD PC" See Fig 5h in patent 4153937
-            annoText = "LOAD PC"
+            annoText = "(R) LOAD PC"
         return annoText
 
