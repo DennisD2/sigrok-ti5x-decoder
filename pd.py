@@ -199,6 +199,9 @@ class Decoder(srd.Decoder):
                                  [AnnoRowPos.WARN, ["XXX"]])
                     irgBits = ""
 
+                    if bitposition<17:
+                        self.put_text(self.idle_samplenum, AnnoRowPos.ERROR, "Less than 16 bits: " + str(bitposition-1))
+
                 if (self.state != State.S0ends and self.state != State.S1
                         and self.state != State.S0):
                     self.state = State.S0starts
@@ -220,19 +223,27 @@ class Decoder(srd.Decoder):
 
             # falling edge of PHI1 ?
             phi1 = pins[Pin.PHI1]
-            if (phi1 == 0) and (self.last_phi1 == 1):
-                if (self.state == State.S1 or self.state == State.S0
-                        or self.state == State.S0ends or self.state == State.S0starts) :
-                    if bitposition<=16 or (not idle or ((idle == 1) and (self.last_idle == 0))):
-                        # EXT line bit
-                        ext = pins[Pin.EXT]
-                        extBits = extBits + str(ext)
-                        # IRG line bit
-                        irg = pins[Pin.IRG]
-                        irgBits = irgBits + str(irg)
-                        if bitposition>16:
-                            self.put_text(self.samplenum, AnnoRowPos.ERROR, "Illegal bit position: " + str(bitposition))
-                        bitposition += 1
+            if self.state != State.INIT or self.state != State.INIT1:
+                if (phi1 == 0) and (self.last_phi1 == 1):
+                    if bitposition>16:
+                        # strange extra bits
+                        self.put_text(self.idle_samplenum, AnnoRowPos.ERROR, "Illegal bit position: " + str(bitposition))
+                        # list these bits seperated by a minus sign
+                        extBits += "-"
+                        irgBits += "-"
+                    # EXT line bit
+                    ext = pins[Pin.EXT]
+                    extBits = extBits + str(ext)
+                    # IRG line bit
+                    irg = pins[Pin.IRG]
+                    irgBits = irgBits + str(irg)
+
+                    # add a dot each 4 bits for readability
+                    if bitposition > 0 and bitposition % 4 == 0:
+                        extBits += "."
+                        irgBits += "."
+
+                    bitposition += 1
             self.last_idle = idle
             self.last_phi1 = phi1
 
