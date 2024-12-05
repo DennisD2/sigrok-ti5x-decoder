@@ -162,7 +162,7 @@ class Decoder(srd.Decoder):
                 self.state = State.INIT1
                 # initialize last_* values
                 self.last_idle = idle
-                self.last_phi1 = phi1
+                self.last_phi1 = pins[Pin.PHI1]
                 self.idle_samplenum = self.samplenum
 
             # falling edge of IDLE ?
