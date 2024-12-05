@@ -41,7 +41,7 @@ class Mode:
     CALCULATE, DISPLAY = range(2)
 
 class AnnoRowPos:
-    STATE, EXTBITS, IRGBITS, CALC, DISP, TIMING, WARN, ERROR = range(8)
+    STATE, EXTBITS, IRGBITS, CALC, DISP, TIMING, INSTRUCTION, WARN, ERROR = range(9)
 
 # Provide custom format type 'H' for hexadecimal output
 # with leading decimal digit (assembler syntax).
@@ -106,6 +106,7 @@ class Decoder(srd.Decoder):
         ('calculate', 'calculate mode'),
         ('display', 'display mode'),
         ('timing', 'Timing'),
+        ('instruction', 'Instruction'),
         ('warning', 'Warning'),
         ('error', 'Error'),
     )
@@ -117,8 +118,9 @@ class Decoder(srd.Decoder):
         ('calc', 'Timing Calculate', (3,)),
         ('disp', 'Timing Display', (4,)),
         ('timings', 'Timings', (5,)),
-        ('warnings', 'Warnings', (6,)),
-        ('errors', 'Errors', (7,)),
+        ('instructions', 'Instructions', (6,)),
+        ('warnings', 'Warnings', (7,)),
+        ('errors', 'Errors', (8,)),
     )
 
     def __init__(self):
@@ -148,6 +150,7 @@ class Decoder(srd.Decoder):
             raise SamplerateError('Cannot decode without samplerate.')
 
         bitposition = 0
+        bit_already_consumed = 0
         extBits = ""
         irgBits = ""
 
@@ -187,26 +190,52 @@ class Decoder(srd.Decoder):
 
                     if bitposition<17:
                         self.put_text(self.idle_samplenum, AnnoRowPos.ERROR, "Less than 16 bits: " + str(bitposition-1))
+                        # Add missing bit 16...
                         # EXT line bit
                         ext = pins[Pin.EXT]
                         extBits = extBits + str(ext)
                         # IRG line bit
                         irg = pins[Pin.IRG]
                         irgBits = irgBits + str(irg)
+                        # note down that this bit was already used
+                        bit_already_consumed = 1
 
                     # EXT line value annotation
                     self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
                              [AnnoRowPos.EXTBITS, [extBits]])
                     extBits = ""
+
+
                     # IRG line value annotation
                     self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
                              [AnnoRowPos.IRGBITS, [irgBits]])
-                    #if irgBits == "0001111110000011": # TRIGGER WORD 58/59 "BRANCH 0N C -1F"
-                    #if "0101000011110" in irgBits: # "LOAD PC" See Fig 5h in patent 4153937
-                    #if "0101000001110" in irgBits: # "UNLOAD PC" See Fig 5h in patent 4153937
-                    if "101" in irgBits: # "UNLOAD PC"
+
+                    irgBits2 = irgBits.replace('.','')
+                    annoText = ""
+                    if "0101000001000" in irgBits2: # "LOAD LSD OF KEYBOARD REG WITH R5 (R5 KR)" See Fig 5h in patent 4153937
+                        annoText = "R5 KR"
+                    if "0101000001000" in irgBits2: # "LOAD R5 WITH LSD OF KEYBOARD REG (KR R5)" See Fig 5h in patent 4153937
+                        annoText = "KR R5"
+                    if "0101000001100" in irgBits2: # "LOAD KEYBOARD REG WITH EXT (EXT KR)" See Fig 5h in patent 4153937
+                        annoText = "EXT KR"
+                    if "0000000010101" in irgBits2: # "PREG" See Fig 5h in patent 4153937
+                        annoText = "PREG"
+                    if "0101000001110" in irgBits2: # "FETCH" See Fig 5h in patent 4153937
+                        annoText = "FETCH"
+                    if "0101000111110" in irgBits2: # "FETCH HIGH" See Fig 5h in patent 4153937
+                        annoText = "UNLOAD PC"
+                    if "0101000011110" in irgBits2: # "LOAD PC" See Fig 5h in patent 4153937
+                        annoText = "LOAD PC"
+                    if "0101000001110" in irgBits2: # "UNLOAD PC" See Fig 5h in patent 4153937
+                        annoText = "UNLOAD PC"
+                    if irgBits2 == "0001111110000011": # TRIGGER WORD 58/59 "BRANCH 0N C -1F"
+                        annoText = "BRANCH 0N C -1F"
+                    if "0101" in irgBits2: # testing code
+                        annoText = "TEST"
+
+                    if annoText != "":
                         self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
-                                 [AnnoRowPos.WARN, ["XXX"]])
+                                 [AnnoRowPos.INSTRUCTION, [annoText]])
                     irgBits = ""
 
                 if (self.state != State.S0ends and self.state != State.S1
@@ -232,25 +261,28 @@ class Decoder(srd.Decoder):
             if self.state != State.INIT and self.state != State.INIT1:
                 # falling edge of PHI1 ?
                 if phi1 == 0 and self.last_phi1 == 1:
-                    if bitposition>16:
-                        # strange extra bits
-                        self.put_text(self.idle_samplenum, AnnoRowPos.ERROR, "Illegal bit position: " + str(bitposition))
-                        # list these bits seperated by a minus sign
-                        extBits += "-"
-                        irgBits += "-"
-                    # EXT line bit
-                    ext = pins[Pin.EXT]
-                    extBits = extBits + str(ext)
-                    # IRG line bit
-                    irg = pins[Pin.IRG]
-                    irgBits = irgBits + str(irg)
+                    if not (bitposition == 1 and bit_already_consumed):
+                        if bitposition>16:
+                            # strange extra bits
+                            self.put_text(self.idle_samplenum, AnnoRowPos.ERROR, "Illegal bit position: " + str(bitposition))
+                            # list these bits seperated by a minus sign
+                            extBits += "-"
+                            irgBits += "-"
+                        # EXT line bit
+                        ext = pins[Pin.EXT]
+                        extBits = extBits + str(ext)
+                        # IRG line bit
+                        irg = pins[Pin.IRG]
+                        irgBits = irgBits + str(irg)
 
-                    # add a dot each 4 bits for readability
-                    if bitposition > 0 and bitposition % 4 == 0:
-                        extBits += "."
-                        irgBits += "."
+                        # add a dot each 4 bits for readability
+                        if bitposition > 0 and bitposition < 16 and bitposition % 4 == 0:
+                            extBits += "."
+                            irgBits += "."
 
-                    bitposition += 1
+                        bitposition += 1
+                    else:
+                        bit_already_consumed = 0
 
             self.last_idle = idle
             self.last_phi1 = phi1
