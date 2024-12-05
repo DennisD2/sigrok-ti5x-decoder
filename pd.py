@@ -191,11 +191,12 @@ class Decoder(srd.Decoder):
                     # IRG line value annotation
                     self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
                              [AnnoRowPos.IRGBITS, [irgBits]])
-                    if irgBits == "0001111110000011":
-                    #if irgBits == "0000011000000000":
-                        #self.put_text(self.idle_samplenum, AnnoRowPos.WARN, "BRANCH 0N C -1F" )
+                    #if irgBits == "0001111110000011": # TRIGGER WORD 58/59 "BRANCH 0N C -1F"
+                    #if "0101000011110" in irgBits: # "LOAD PC" See Fig 5h in patent 4153937
+                    #if "0101000001110" in irgBits: # "UNLOAD PC" See Fig 5h in patent 4153937
+                    if "101" in irgBits: # "UNLOAD PC"
                         self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
-                                 [AnnoRowPos.WARN, ["BRANCH 0N C -1F"]])
+                                 [AnnoRowPos.WARN, ["XXX"]])
                     irgBits = ""
 
                 if (self.state != State.S0ends and self.state != State.S1
