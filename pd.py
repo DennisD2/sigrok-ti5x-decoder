@@ -102,7 +102,6 @@ class Decoder(srd.Decoder):
         ('s0', 'Start of instruction cycle'),
         ('extbit', 'EXT line data bits'),
         ('irgbit', 'IRG line data bits'),
-        ('bitdata', 'data bits'),
         ('calculate', 'calculate mode'),
         ('display', 'display mode'),
         ('timing', 'Timing'),
@@ -180,6 +179,8 @@ class Decoder(srd.Decoder):
                     # keep starting sample for later use
                     self.idle_samplenum = self.samplenum
                     statenum = 0
+                self.put(self.sx_samplenum, self.sx_samplenum+4, self.out_ann,
+                         [AnnoRowPos.WARN, [str(phi1)]])
 
             if self.state == State.SX:
                 if phi1 == 0:
