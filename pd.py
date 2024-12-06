@@ -259,7 +259,7 @@ class Decoder(srd.Decoder):
                         annoText = self.get_instruction(irgBits[::-1])
                         if annoText != "":
                             self.put(self.idle_samplenum, self.samplenum, self.out_ann,
-                                     [AnnoRowPos.INSTRUCTION, [annoText]])
+                                     [AnnoRowPos.INSTRUCTION, [annoText + "(R)"]])
 
             if self.state == State.SXstarts:
                 self.state = State.SX
@@ -289,15 +289,35 @@ class Decoder(srd.Decoder):
         if "0101000001110" in irgBits2:  # "FETCH" See Fig 5h in patent 4153937
             annoText = "FETCH"
         if "0101000111110" in irgBits2:  # "FETCH HIGH" See Fig 5h in patent 4153937
-            annoText = "UNLOAD PC"
+            annoText = "FETCH HIGH"
         if "0101000011110" in irgBits2:  # "LOAD PC" See Fig 5h in patent 4153937
             annoText = "LOAD PC"
         if "0101000001110" in irgBits2:  # "UNLOAD PC" See Fig 5h in patent 4153937
             annoText = "UNLOAD PC"
         if irgBits2 == "0001111110000011":  # TRIGGER WORD 58/59 "BRANCH 0N C -1F"
             annoText = "BRANCH 0N C -1F"
+        if irgBits2 == "1111000000001010":  # ZERO IDLE"
+            annoText = "ZERO IDLE"
+
+        if "111100000000101" in irgBits2:
+            annoText = "ZERO IDLE"
+
+        if "10100000100" in irgBits2:  # "LOAD LSD OF KEYBOARD REG WITH R5 (R5 KR)" See Fig 5h in patent 4153937
+            annoText = "R5 KR"
+        if "10100000100" in irgBits2:  # "LOAD R5 WITH LSD OF KEYBOARD REG (KR R5)" See Fig 5h in patent 4153937
+            annoText = "KR R5"
+        if "10100000110" in irgBits2:  # "LOAD KEYBOARD REG WITH EXT (EXT KR)" See Fig 5h in patent 4153937
+            annoText = "EXT KR"
+        if "00000001010" in irgBits2:  # "PREG" See Fig 5h in patent 4153937
+            annoText = "PREG"
+        if "10100000111" in irgBits2:  # "FETCH" See Fig 5h in patent 4153937
+            annoText = "FETCH"
+        if "10100011111" in irgBits2:  # "FETCH HIGH" See Fig 5h in patent 4153937
+            annoText = "UNLOAD PC"
+        if "10100001111" in irgBits2:  # "LOAD PC" See Fig 5h in patent 4153937
+            annoText = "LOAD PC"
+        if "10100000111" in irgBits2:  # "UNLOAD PC" See Fig 5h in patent 4153937
+            annoText = "UNLOAD PC"
         #if "0101" in irgBits2: # testing code
         #    annoText = "TEST"
-        if "0111100001010" in irgBits2:  # "LOAD PC" See Fig 5h in patent 4153937
-            annoText = "(R) LOAD PC"
         return annoText
