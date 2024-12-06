@@ -229,8 +229,11 @@ class Decoder(srd.Decoder):
                     else:
                         # all states of this instruction cycle have been read, start over
                         statenum = 0
+                        extBits = str(ext)
+                        irgBits = str(irg)
                         if idle == 0 and self.last_idle == 1:
                             self.state = State.SXstarts
+                            self.idle_samplenum = self.samplenum
                         else:
                             self.state = State.IDLEwait
 
