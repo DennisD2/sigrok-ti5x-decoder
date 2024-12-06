@@ -41,7 +41,7 @@ class Mode:
     CALCULATE, DISPLAY = range(2)
 
 class AnnoRowPos:
-    STATE, EXTBITS, IRGBITS, CALC, DISP, TIMING, INSTRUCTION, WARN, ERROR = range(9)
+    STATE, EXTBITS, EXTWORDS, IRGBITS, IRGWORDS, CALC, DISP, TIMING, INSTRUCTION, WARN, ERROR = range(11)
 
 # Provide custom format type 'H' for hexadecimal output
 # with leading decimal digit (assembler syntax).
@@ -101,7 +101,9 @@ class Decoder(srd.Decoder):
     annotations = (
         ('s0', 'Start of instruction cycle'),
         ('extbit', 'EXT line data bits'),
+        ('extword', 'EXT line data word'),
         ('irgbit', 'IRG line data bits'),
+        ('irgword', 'IRG line data word'),
         ('calculate', 'calculate mode'),
         ('display', 'display mode'),
         ('timing', 'Timing'),
@@ -113,13 +115,15 @@ class Decoder(srd.Decoder):
     annotation_rows = (
         ('state', 'State', (0,)),
         ('extbits', 'EXT', (1,)),
-        ('irgbits', 'IRG', (2,)),
-        ('calc', 'Timing Calculate', (3,)),
-        ('disp', 'Timing Display', (4,)),
-        ('timings', 'Timings', (5,)),
-        ('instructions', 'Instructions', (6,)),
-        ('warnings', 'Warnings', (7,)),
-        ('errors', 'Errors', (8,)),
+        ('extwords', 'EXTW', (2,)),
+        ('irgbits', 'IRG', (3,)),
+        ('irgwords', 'IRGW', (4,)),
+        ('calc', 'Timing Calculate', (5,)),
+        ('disp', 'Timing Display', (6,)),
+        ('timings', 'Timings', (7,)),
+        ('instructions', 'Instructions', (8,)),
+        ('warnings', 'Warnings', (9,)),
+        ('errors', 'Errors', (10,)),
     )
 
     def __init__(self):
@@ -204,10 +208,10 @@ class Decoder(srd.Decoder):
                                  [AnnoRowPos.DISP, ['DISPLAY']])
 
             if self.state == State.SXends:
-                #self.put(self.sx_samplenum, self.sx_samplenum+4, self.out_ann,
-                #         [AnnoRowPos.EXTBITS, [str(valExt)]])
-                #self.put(self.sx_samplenum, self.sx_samplenum+4, self.out_ann,
-                #         [AnnoRowPos.IRGBITS, [str(valIRG)]])
+                self.put(self.sx_samplenum, self.sx_samplenum+4, self.out_ann,
+                         [AnnoRowPos.EXTBITS, [str(valExt)]])
+                self.put(self.sx_samplenum, self.sx_samplenum+4, self.out_ann,
+                         [AnnoRowPos.IRGBITS, [str(valIRG)]])
 
                 # negative edge of phi1
                 if phi1 == 0 and self.last_phi1 == 1:
@@ -240,10 +244,10 @@ class Decoder(srd.Decoder):
                 if statenum == 15:
                     # EXT line value annotation
                     self.put(self.idle_samplenum, self.samplenum, self.out_ann,
-                             [AnnoRowPos.EXTBITS, [extBits]])
+                             [AnnoRowPos.EXTWORDS, [extBits]])
                     # IRG line value annotation
                     self.put(self.idle_samplenum, self.samplenum, self.out_ann,
-                             [AnnoRowPos.IRGBITS, [irgBits]])
+                             [AnnoRowPos.IRGWORDS, [irgBits]])
 
                     annoText = self.get_instruction(irgBits)
                     if annoText != "":
