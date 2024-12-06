@@ -201,6 +201,9 @@ class Decoder(srd.Decoder):
                         statenum += 1
                     else:
                         # all states of this instruction cycle have been read, start over
+                        statenum = 0
+                        valExt = 0
+                        valIRG = 0
                         self.state = State.IDLEwait
 
             if self.state == State.SXstarts:
