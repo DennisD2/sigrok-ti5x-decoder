@@ -183,6 +183,9 @@ class Decoder(srd.Decoder):
                     self.idle_samplenum = self.samplenum
                     statenum = 0
 
+                    extBits = str(ext)
+                    irgBits = str(irg)
+
             if self.state == State.SX:
                 if phi1 == 0:
                     valExt += ext
@@ -201,25 +204,39 @@ class Decoder(srd.Decoder):
                                  [AnnoRowPos.DISP, ['DISPLAY']])
 
             if self.state == State.SXends:
-                self.put(self.sx_samplenum, self.sx_samplenum+4, self.out_ann,
-                         [AnnoRowPos.EXTBITS, [str(valExt)]])
-                self.put(self.sx_samplenum, self.sx_samplenum+4, self.out_ann,
-                         [AnnoRowPos.IRGBITS, [str(valIRG)]])
+                #self.put(self.sx_samplenum, self.sx_samplenum+4, self.out_ann,
+                #         [AnnoRowPos.EXTBITS, [str(valExt)]])
+                #self.put(self.sx_samplenum, self.sx_samplenum+4, self.out_ann,
+                #         [AnnoRowPos.IRGBITS, [str(valIRG)]])
+
                 # negative edge of phi1
                 if phi1 == 0 and self.last_phi1 == 1:
                     if statenum < 15:
                         # a new sx state starts
                         self.state = State.SXstarts
                         statenum += 1
+                        # add a dot each 4 bits for readability
+                        if statenum > 0 and statenum < 16 and statenum % 4 == 0:
+                            extBits += "."
+                            irgBits += "."
+                        extBits += str(valExt)
+                        irgBits += str(valIRG)
+
                     else:
                         # all states of this instruction cycle have been read, start over
                         statenum = 0
-                        valExt = 0
-                        valIRG = 0
                         if idle == 0 and self.last_idle == 1:
                             self.state = State.SXstarts
                         else:
                             self.state = State.IDLEwait
+
+                if statenum == 15:
+                    # EXT line value annotation
+                    self.put(self.idle_samplenum, self.samplenum, self.out_ann,
+                             [AnnoRowPos.EXTBITS, [extBits]])
+                    # IRG line value annotation
+                    self.put(self.idle_samplenum, self.samplenum, self.out_ann,
+                             [AnnoRowPos.IRGBITS, [irgBits]])
 
             if self.state == State.SXstarts:
                 self.state = State.SX

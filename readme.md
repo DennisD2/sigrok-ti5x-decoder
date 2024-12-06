@@ -3,3 +3,10 @@
 
 ## Patents
 4153937	TI-59	 	1977	Microprocessor system having high order capability
+
+
+## TODOs
+* bitstrings ausgeben
+* timing ausgeben
+* cycle time (phi, instruction) berechnen und bei timing ausgeben
+* instructions ausgeben
