@@ -154,11 +154,14 @@ class Decoder(srd.Decoder):
             raise SamplerateError('Cannot decode without samplerate.')
 
         statenum = 0
-        extBits = ""
-        irgBits = ""
         self.state = State.INIT
         valExt = 0
         valIRG = 0
+
+        s_ext_values = 16 * [0]
+        s_ext_done = 16 * [0]
+        s_irg_values = 16 * [0]
+        s_irg_done = 16 * [0]
 
         while True:
             pins = self.wait()
@@ -187,8 +190,10 @@ class Decoder(srd.Decoder):
                     self.idle_samplenum = self.samplenum
                     statenum = 0
 
-                    extBits = ""
-                    irgBits = ""
+                    s_ext_values = 16 * [0]
+                    s_ext_done = 16 * [0]
+                    s_irg_values = 16 * [0]
+                    s_irg_done = 16 * [0]
 
             if self.state == State.SX:
                 if phi1 == 0:
@@ -212,28 +217,21 @@ class Decoder(srd.Decoder):
                          [AnnoRowPos.EXTBITS, [str(valExt)]])
                 self.put(self.sx_samplenum, self.sx_samplenum+4, self.out_ann,
                          [AnnoRowPos.IRGBITS, [str(valIRG)]])
+                
+                s_ext_values[statenum] = valExt
+                s_ext_done[statenum] = 1
+                s_irg_values[statenum] = valIRG
+                s_irg_done[statenum] = 1
 
                 # negative edge of phi1
                 if phi1 == 0 and self.last_phi1 == 1:
                     if statenum < 15:
                         # a new sx state starts
                         self.state = State.SXstarts
-                        # add a dot each 4 bits for readability
-                        if statenum > 0 and statenum < 16 and statenum % 4 == 0:
-                            extBits += "."
-                            irgBits += "."
-                        if valExt > 1:
-                            valExt=1
-                        if valIRG > 1:
-                            valIRG=1
-                        extBits += str(valExt)
-                        irgBits += str(valIRG)
                         statenum += 1
                     else:
                         # all states of this instruction cycle have been read, start over
                         statenum = 0
-                        extBits =  ""
-                        irgBits =  ""
                         if idle == 0 and self.last_idle == 1:
                             self.state = State.SXstarts
                             self.idle_samplenum = self.samplenum
@@ -242,8 +240,25 @@ class Decoder(srd.Decoder):
 
                     if statenum == 15:
                         # Add last bit value
-                        extBits += str(valExt)
-                        irgBits += str(valIRG)
+                        extBits = ""
+                        i = 0
+                        for x in s_ext_values:
+                            if x>1:
+                                x=1
+                            extBits += str(x)
+                            i+=1
+                            if i>0 and i<16 and i % 4 == 0:
+                                extBits += "."
+
+                        irgBits = ""
+                        i = 0
+                        for x in s_irg_values:
+                            if x>1:
+                                x=1
+                            irgBits += str(x)
+                            i+=1
+                            if i>0 and i<16 and i % 4 == 0:
+                                irgBits += "."
 
                         # EXT line value annotation
                         self.put(self.idle_samplenum, self.samplenum, self.out_ann,
@@ -300,24 +315,8 @@ class Decoder(srd.Decoder):
             annoText = "ZERO IDLE"
 
         if "111100000000101" in irgBits2:
-            annoText = "ZERO IDLE"
+            annoText = "ZERO IDLE x"
 
-        if "10100000100" in irgBits2:  # "LOAD LSD OF KEYBOARD REG WITH R5 (R5 KR)" See Fig 5h in patent 4153937
-            annoText = "R5 KR"
-        if "10100000100" in irgBits2:  # "LOAD R5 WITH LSD OF KEYBOARD REG (KR R5)" See Fig 5h in patent 4153937
-            annoText = "KR R5"
-        if "10100000110" in irgBits2:  # "LOAD KEYBOARD REG WITH EXT (EXT KR)" See Fig 5h in patent 4153937
-            annoText = "EXT KR"
-        if "00000001010" in irgBits2:  # "PREG" See Fig 5h in patent 4153937
-            annoText = "PREG"
-        if "10100000111" in irgBits2:  # "FETCH" See Fig 5h in patent 4153937
-            annoText = "FETCH"
-        if "10100011111" in irgBits2:  # "FETCH HIGH" See Fig 5h in patent 4153937
-            annoText = "UNLOAD PC"
-        if "10100001111" in irgBits2:  # "LOAD PC" See Fig 5h in patent 4153937
-            annoText = "LOAD PC"
-        if "10100000111" in irgBits2:  # "UNLOAD PC" See Fig 5h in patent 4153937
-            annoText = "UNLOAD PC"
         #if "0101" in irgBits2: # testing code
         #    annoText = "TEST"
         return annoText
