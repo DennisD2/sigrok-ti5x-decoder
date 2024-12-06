@@ -163,8 +163,8 @@ class Decoder(srd.Decoder):
             ext = pins[Pin.EXT]
             irg = pins[Pin.IRG]
 
-            self.put(self.samplenum, self.samplenum, self.out_ann,
-                     [AnnoRowPos.WARN, [str(self.state)]])
+            #self.put(self.samplenum, self.samplenum, self.out_ann,
+            #         [AnnoRowPos.WARN, [str(self.state)]])
 
             if self.state == State.INIT:
                 self.state = State.IDLEwait
@@ -189,6 +189,16 @@ class Decoder(srd.Decoder):
                     valIRG += irg
                 else:
                     self.state = State.SXends
+
+                if statenum == 1:
+                    if idle == 1:
+                        self.mode = Mode.CALCULATE
+                        self.put(self.samplenum, self.samplenum+4, self.out_ann,
+                                 [AnnoRowPos.CALC, ['CALCULATE']])
+                    else:
+                        self.mode = Mode.DISPLAY
+                        self.put(self.samplenum, self.samplenum+4, self.out_ann,
+                                 [AnnoRowPos.DISP, ['DISPLAY']])
 
             if self.state == State.SXends:
                 self.put(self.sx_samplenum, self.sx_samplenum+4, self.out_ann,
