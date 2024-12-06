@@ -128,6 +128,7 @@ class Decoder(srd.Decoder):
         self.last_idle = 0
         self.last_phi1 = 0
         self.idle_samplenum = 0
+        self.sx_samplenum = 0
         self.mode = Mode.CALCULATE
 
     def metadata(self, key, value):
@@ -153,13 +154,15 @@ class Decoder(srd.Decoder):
         extBits = ""
         irgBits = ""
         self.state = State.INIT
+        valExt = 0
+        valIRG = 0
 
         while True:
             pins = self.wait()
             idle = pins[Pin.IDLE]
             phi1 = pins[Pin.PHI1]
-
-            valExt = 0
+            ext = pins[Pin.EXT]
+            irg = pins[Pin.IRG]
 
             if self.state == State.INIT:
                 self.state = State.IDLEwait
@@ -174,35 +177,42 @@ class Decoder(srd.Decoder):
                 # falling edge of IDLE ?
                 if (idle == 0) and (self.last_idle == 1):
                     self.state = State.SXstarts
-                    #self.put_text(self.samplenum, AnnoRowPos.STATE,
-                    #              's0')
-                    #self.put(self.samplenum, self.samplenum+2, self.out_ann,
-                    #         [AnnoRowPos.STATE, ['s0']])
                     # keep starting sample for later use
                     self.idle_samplenum = self.samplenum
                     statenum = 0
 
-            if self.state == State.SXstarts:
-                self.state = State.SX
-                valExt = 0
-                self.put_text(self.samplenum, AnnoRowPos.STATE,
-                              's' + str(statenum))
-
             if self.state == State.SX:
                 if phi1 == 0:
-                    valExt += pins[Pin.EXT]
+                    valExt += ext
+                    valIRG += irg
                 else:
                     self.state = State.SXends
 
             if self.state == State.SXends:
+                self.put(self.sx_samplenum, self.sx_samplenum+4, self.out_ann,
+                         [AnnoRowPos.EXTBITS, [str(valExt)]])
+                self.put(self.sx_samplenum, self.sx_samplenum+4, self.out_ann,
+                         [AnnoRowPos.IRGBITS, [str(valIRG)]])
+                # negative edge of phi1
                 if phi1 == 0 and self.last_phi1 == 1:
                     if statenum < 15:
+                        # a new sx state starts
                         self.state = State.SXstarts
                         statenum += 1
-                        self.put_text(self.samplenum, AnnoRowPos.EXTBITS,
-                                  str(valExt))
                     else:
+                        # all states of this instruction cycle have been read, start over
                         self.state = State.IDLEwait
 
+            if self.state == State.SXstarts:
+                self.state = State.SX
+                # start location of sx state
+                self.sx_samplenum = self.samplenum
+                # initialize bit value for sx state
+                valExt = ext
+                valIRG = irg
+                self.put_text(self.samplenum, AnnoRowPos.STATE,
+                              's' + str(statenum))
+
+            # update last_* values
             self.last_idle = idle
             self.last_phi1 = phi1
