@@ -25,7 +25,7 @@ class SamplerateError(Exception):
     pass
 
 class State:
-    INIT, INIT1, S0starts, S0, S0ends, S1, S2, X, WARN = range(9)
+    INIT, IDLEwait, SXwait, SXstarts, SX, SXends = range(6)
 
 class Pin:
     IDLE = 0
@@ -124,7 +124,7 @@ class Decoder(srd.Decoder):
     )
 
     def __init__(self):
-        self.state = 'INIT'
+        self.state = State.INIT
         self.last_idle = 0
         self.last_phi1 = 0
         self.idle_samplenum = 0
@@ -149,149 +149,60 @@ class Decoder(srd.Decoder):
         if not self.samplerate:
             raise SamplerateError('Cannot decode without samplerate.')
 
-        bitposition = 0
-        bit_already_consumed = 0
+        statenum = 0
         extBits = ""
         irgBits = ""
+        self.state = State.INIT
 
         while True:
             pins = self.wait()
             idle = pins[Pin.IDLE]
+            phi1 = pins[Pin.PHI1]
 
-            if (self.state == State.INIT):
-                self.state = State.INIT1
+            valExt = 0
+
+            if self.state == State.INIT:
+                self.state = State.IDLEwait
+                statenum = 0
                 # initialize last_* values
                 self.last_idle = idle
-                self.last_phi1 = pins[Pin.PHI1]
-                self.idle_samplenum = self.samplenum
+                self.last_phi1 = phi1
+                self.put_text(self.samplenum, AnnoRowPos.STATE,
+                              'INIT')
 
-            # falling edge of IDLE ?
-            if (idle == 0) and (self.last_idle == 1):
-                if self.state == State.S0ends:
-                    self.state = State.S0starts
-                    # S0end state: now calculate length of idle period
-                    idle_duration = (self.samplenum - self.idle_samplenum) / self.samplerate
-                    end_anno_sample = self.samplenum
-                    if (end_anno_sample-self.idle_samplenum) < 10:
-                        end_anno_sample = self.idle_samplenum+10
-                    anno_loc = 0
-                    # TODO should be derived from S1/S15 IDLE line raise
-                    # I have some poor hardcoding for now
-                    if idle_duration < 10e-6:
-                        self.mode = Mode.CALCULATE
-                        anno_loc = AnnoRowPos.CALC
-                    else:
-                        anno_loc = AnnoRowPos.DISP
-                        self.mode = Mode.DISPLAY
-
-                    # timing annotation (attached to starting sample)
-                    self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
-                             [anno_loc, [normalize_time(idle_duration)]])
-
-                    if bitposition<17:
-                        self.put_text(self.idle_samplenum, AnnoRowPos.ERROR, "Less than 16 bits: " + str(bitposition-1))
-                        # Add missing bit 16...
-                        # EXT line bit
-                        ext = pins[Pin.EXT]
-                        extBits = extBits + str(ext)
-                        # IRG line bit
-                        irg = pins[Pin.IRG]
-                        irgBits = irgBits + str(irg)
-                        # note down that this bit was already used
-                        bit_already_consumed = 1
-
-                    # EXT line value annotation
-                    self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
-                             [AnnoRowPos.EXTBITS, [extBits]])
-                    extBits = ""
-
-                    # IRG line value annotation
-                    self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
-                             [AnnoRowPos.IRGBITS, [irgBits]])
-
-                    annoText = self.get_instruction(irgBits)
-                    if annoText != "":
-                        self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
-                                 [AnnoRowPos.INSTRUCTION, [annoText]])
-                    annoText = self.get_instruction(irgBits[::-1])
-                    if annoText != "":
-                        self.put(self.idle_samplenum, end_anno_sample, self.out_ann,
-                                 [AnnoRowPos.INSTRUCTION, [annoText]])
-                    irgBits = ""
-
-                if (self.state != State.S0ends and self.state != State.S1
-                        and self.state != State.S0):
-                    self.state = State.S0starts
-                    self.put_text(self.samplenum, AnnoRowPos.STATE,
-                                  's0')
-                    self.state = State.S0
+            if self.state == State.IDLEwait:
+                # falling edge of IDLE ?
+                if (idle == 0) and (self.last_idle == 1):
+                    self.state = State.SXstarts
+                    #self.put_text(self.samplenum, AnnoRowPos.STATE,
+                    #              's0')
+                    #self.put(self.samplenum, self.samplenum+2, self.out_ann,
+                    #         [AnnoRowPos.STATE, ['s0']])
                     # keep starting sample for later use
                     self.idle_samplenum = self.samplenum
-                    bitposition = 1
+                    statenum = 0
 
-            # raising edge of IDLE?
-            if (idle == 1) and (self.last_idle == 0):
-                if self.state == State.S0:
-                    # if we are in S0, then we move to S0end
-                    self.state = State.S0ends
-                if self.state == State.S1:
-                    # if we are in S0, then we move to S0end
-                    self.state = State.S0starts
+            if self.state == State.SXstarts:
+                self.state = State.SX
+                valExt = 0
+                self.put_text(self.samplenum, AnnoRowPos.STATE,
+                              's' + str(statenum))
 
-            phi1 = pins[Pin.PHI1]
-            if self.state != State.INIT and self.state != State.INIT1:
-                # falling edge of PHI1 ?
+            if self.state == State.SX:
+                if phi1 == 0:
+                    valExt += pins[Pin.EXT]
+                else:
+                    self.state = State.SXends
+
+            if self.state == State.SXends:
                 if phi1 == 0 and self.last_phi1 == 1:
-                    if not (bitposition == 1 and bit_already_consumed):
-                        if bitposition>16:
-                            # strange extra bits
-                            self.put_text(self.idle_samplenum, AnnoRowPos.ERROR, "Illegal bit position: " + str(bitposition))
-                            # list these bits seperated by a minus sign
-                            extBits += "-"
-                            irgBits += "-"
-                        # EXT line bit
-                        ext = pins[Pin.EXT]
-                        extBits = extBits + str(ext)
-                        # IRG line bit
-                        irg = pins[Pin.IRG]
-                        irgBits = irgBits + str(irg)
-
-                        # add a dot each 4 bits for readability
-                        if bitposition > 0 and bitposition < 16 and bitposition % 4 == 0:
-                            extBits += "."
-                            irgBits += "."
-
-                        bitposition += 1
+                    if statenum < 15:
+                        self.state = State.SXstarts
+                        statenum += 1
+                        self.put_text(self.samplenum, AnnoRowPos.EXTBITS,
+                                  str(valExt))
                     else:
-                        bit_already_consumed = 0
+                        self.state = State.IDLEwait
 
             self.last_idle = idle
             self.last_phi1 = phi1
-
-    def get_instruction(self, irgBits):
-        irgBits2 = irgBits.replace('.', '')
-        annoText = ""
-        if "0101000001000" in irgBits2:  # "LOAD LSD OF KEYBOARD REG WITH R5 (R5 KR)" See Fig 5h in patent 4153937
-            annoText = "R5 KR"
-        if "0101000001000" in irgBits2:  # "LOAD R5 WITH LSD OF KEYBOARD REG (KR R5)" See Fig 5h in patent 4153937
-            annoText = "KR R5"
-        if "0101000001100" in irgBits2:  # "LOAD KEYBOARD REG WITH EXT (EXT KR)" See Fig 5h in patent 4153937
-            annoText = "EXT KR"
-        if "0000000010101" in irgBits2:  # "PREG" See Fig 5h in patent 4153937
-            annoText = "PREG"
-        if "0101000001110" in irgBits2:  # "FETCH" See Fig 5h in patent 4153937
-            annoText = "FETCH"
-        if "0101000111110" in irgBits2:  # "FETCH HIGH" See Fig 5h in patent 4153937
-            annoText = "UNLOAD PC"
-        if "0101000011110" in irgBits2:  # "LOAD PC" See Fig 5h in patent 4153937
-            annoText = "LOAD PC"
-        if "0101000001110" in irgBits2:  # "UNLOAD PC" See Fig 5h in patent 4153937
-            annoText = "UNLOAD PC"
-        if irgBits2 == "0001111110000011":  # TRIGGER WORD 58/59 "BRANCH 0N C -1F"
-            annoText = "BRANCH 0N C -1F"
-        #if "0101" in irgBits2: # testing code
-        #    annoText = "TEST"
-        if "0111100001010" in irgBits2:  # "LOAD PC" See Fig 5h in patent 4153937
-            annoText = "(R) LOAD PC"
-        return annoText
-
