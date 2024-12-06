@@ -245,22 +245,21 @@ class Decoder(srd.Decoder):
                         extBits += str(valExt)
                         irgBits += str(valIRG)
 
-                if statenum == 15:
-                    # EXT line value annotation
-                    self.put(self.idle_samplenum, self.samplenum, self.out_ann,
-                             [AnnoRowPos.EXTWORDS, [extBits]])
-                    # IRG line value annotation
-                    self.put(self.idle_samplenum, self.samplenum, self.out_ann,
-                             [AnnoRowPos.IRGWORDS, [irgBits]])
+                        # EXT line value annotation
+                        self.put(self.idle_samplenum, self.samplenum, self.out_ann,
+                                 [AnnoRowPos.EXTWORDS, [extBits]])
+                        # IRG line value annotation
+                        self.put(self.idle_samplenum, self.samplenum, self.out_ann,
+                                 [AnnoRowPos.IRGWORDS, [irgBits]])
 
-                    annoText = self.get_instruction(irgBits)
-                    if annoText != "":
-                        self.put(self.idle_samplenum, self.samplenum, self.out_ann,
-                                 [AnnoRowPos.INSTRUCTION, [annoText]])
-                    annoText = self.get_instruction(irgBits[::-1])
-                    if annoText != "":
-                        self.put(self.idle_samplenum, self.samplenum, self.out_ann,
-                                 [AnnoRowPos.INSTRUCTION, [annoText]])
+                        annoText = self.get_instruction(irgBits)
+                        if annoText != "":
+                            self.put(self.idle_samplenum, self.samplenum, self.out_ann,
+                                     [AnnoRowPos.INSTRUCTION, [annoText]])
+                        annoText = self.get_instruction(irgBits[::-1])
+                        if annoText != "":
+                            self.put(self.idle_samplenum, self.samplenum, self.out_ann,
+                                     [AnnoRowPos.INSTRUCTION, [annoText]])
 
             if self.state == State.SXstarts:
                 self.state = State.SX
