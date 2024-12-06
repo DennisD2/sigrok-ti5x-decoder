@@ -187,8 +187,8 @@ class Decoder(srd.Decoder):
                     self.idle_samplenum = self.samplenum
                     statenum = 0
 
-                    extBits = str(ext)
-                    irgBits = str(irg)
+                    extBits = ""
+                    irgBits = ""
 
             if self.state == State.SX:
                 if phi1 == 0:
@@ -218,7 +218,6 @@ class Decoder(srd.Decoder):
                     if statenum < 15:
                         # a new sx state starts
                         self.state = State.SXstarts
-                        statenum += 1
                         # add a dot each 4 bits for readability
                         if statenum > 0 and statenum < 16 and statenum % 4 == 0:
                             extBits += "."
@@ -229,17 +228,22 @@ class Decoder(srd.Decoder):
                             valIRG=1
                         extBits += str(valExt)
                         irgBits += str(valIRG)
-
+                        statenum += 1
                     else:
                         # all states of this instruction cycle have been read, start over
                         statenum = 0
-                        extBits = str(ext)
-                        irgBits = str(irg)
+                        extBits =  ""
+                        irgBits =  ""
                         if idle == 0 and self.last_idle == 1:
                             self.state = State.SXstarts
                             self.idle_samplenum = self.samplenum
                         else:
                             self.state = State.IDLEwait
+
+                    if statenum == 15:
+                        # Add last bit value
+                        extBits += str(valExt)
+                        irgBits += str(valIRG)
 
                 if statenum == 15:
                     # EXT line value annotation
