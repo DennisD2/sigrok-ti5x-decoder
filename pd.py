@@ -177,12 +177,11 @@ class Decoder(srd.Decoder):
 
             if self.state == State.IDLEwait:
                 # falling edge of IDLE ?
-                if (idle == 0) and (self.last_idle == 1):
+                if idle == 0 and self.last_idle == 1:
                     self.state = State.SXstarts
                     # keep starting sample for later use
                     self.idle_samplenum = self.samplenum
                     statenum = 0
-
 
             if self.state == State.SX:
                 if phi1 == 0:
