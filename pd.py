@@ -163,6 +163,9 @@ class Decoder(srd.Decoder):
             ext = pins[Pin.EXT]
             irg = pins[Pin.IRG]
 
+            self.put(self.samplenum, self.samplenum, self.out_ann,
+                     [AnnoRowPos.WARN, [str(self.state)]])
+
             if self.state == State.INIT:
                 self.state = State.IDLEwait
                 statenum = 0
@@ -179,8 +182,7 @@ class Decoder(srd.Decoder):
                     # keep starting sample for later use
                     self.idle_samplenum = self.samplenum
                     statenum = 0
-                self.put(self.sx_samplenum, self.sx_samplenum+4, self.out_ann,
-                         [AnnoRowPos.WARN, [str(phi1)]])
+
 
             if self.state == State.SX:
                 if phi1 == 0:
@@ -205,7 +207,10 @@ class Decoder(srd.Decoder):
                         statenum = 0
                         valExt = 0
                         valIRG = 0
-                        self.state = State.IDLEwait
+                        if idle == 0 and self.last_idle == 1:
+                            self.state = State.SXstarts
+                        else:
+                            self.state = State.IDLEwait
 
             if self.state == State.SXstarts:
                 self.state = State.SX
