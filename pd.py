@@ -267,14 +267,16 @@ class Decoder(srd.Decoder):
                         self.put(self.idle_samplenum, self.samplenum, self.out_ann,
                                  [AnnoRowPos.IRGWORDS, [irgBits]])
 
-                        annoText = self.get_instruction(irgBits)
+                        reversed = irgBits[::-1]
+                        instructionPart = reversed[3:]
+                        annoText = self.get_instruction(instructionPart)
                         if annoText != "":
                             self.put(self.idle_samplenum, self.samplenum, self.out_ann,
                                      [AnnoRowPos.INSTRUCTION, [annoText]])
-                        annoText = self.get_instruction(irgBits[::-1])
-                        if annoText != "":
-                            self.put(self.idle_samplenum, self.samplenum, self.out_ann,
-                                     [AnnoRowPos.INSTRUCTION, [annoText + "(R)"]])
+                        #annoText = self.get_instruction(irgBits[::-1])
+                        #if annoText != "":
+                        #    self.put(self.idle_samplenum, self.samplenum, self.out_ann,
+                        #             [AnnoRowPos.INSTRUCTION, [annoText + "(R)"]])
 
             if self.state == State.SXstarts:
                 self.state = State.SX
@@ -292,8 +294,8 @@ class Decoder(srd.Decoder):
 
     def get_instruction(self, irgBits):
         irgBits2 = irgBits.replace('.', '')
-        annoText = ""
-        if "0101000001000" in irgBits2:  # "LOAD LSD OF KEYBOARD REG WITH R5 (R5 KR)" See Fig 5h in patent 4153937
+        annoText = "" # irgBits2
+        if "0101000011000" in irgBits2:  # "LOAD LSD OF KEYBOARD REG WITH R5 (R5 KR)" See Fig 5h in patent 4153937
             annoText = "R5 KR"
         if "0101000001000" in irgBits2:  # "LOAD R5 WITH LSD OF KEYBOARD REG (KR R5)" See Fig 5h in patent 4153937
             annoText = "KR R5"
@@ -307,16 +309,20 @@ class Decoder(srd.Decoder):
             annoText = "FETCH HIGH"
         if "0101000011110" in irgBits2:  # "LOAD PC" See Fig 5h in patent 4153937
             annoText = "LOAD PC"
-        if "0101000001110" in irgBits2:  # "UNLOAD PC" See Fig 5h in patent 4153937
+        if "0101000101110" in irgBits2:  # "UNLOAD PC" See Fig 5h in patent 4153937
             annoText = "UNLOAD PC"
+        if irgBits2 == "0 1010 000001010":  # ZERO IDLE"
+            annoText = "ZERO IDLE"
+        if "0101011111000" in irgBits2:
+            annoText = "RAM_OP"
+        if "0101001001000" in irgBits2:
+            annoText = "CRD_OFF"
+        if "0101010001000" in irgBits2:
+            annoText = "PRT_CLEAR"
+        if "0101000001100" in irgBits2:
+            annoText = "MOV KR,EXT"
         if irgBits2 == "0001111110000011":  # TRIGGER WORD 58/59 "BRANCH 0N C -1F"
             annoText = "BRANCH 0N C -1F"
-        if irgBits2 == "1111000000001010":  # ZERO IDLE"
-            annoText = "ZERO IDLE"
-
-        if "111100000000101" in irgBits2:
-            annoText = "ZERO IDLE x"
-
-        #if "0101" in irgBits2: # testing code
-        #    annoText = "TEST"
+        if "101000011000" in irgBits2: # testing code
+            annoText = "TEST"
         return annoText
