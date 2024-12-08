@@ -25,7 +25,7 @@ class SamplerateError(Exception):
     pass
 
 class State:
-    INIT, IDLEwait, SXwait, SXstarts, SX, SXends = range(6)
+    INIT, IDLEwait, SXwait, SXwaitForPhiTrue, SXstarts, SX, SXends = range(7)
 
 class Pin:
     IDLE = 0
@@ -130,6 +130,7 @@ class Decoder(srd.Decoder):
         self.state = State.INIT
         self.last_idle = 0
         self.last_phi1 = 0
+        self.last_state = 0
         self.idle_samplenum = 0
         self.sx_samplenum = 0
         self.mode = Mode.CALCULATE
@@ -170,8 +171,12 @@ class Decoder(srd.Decoder):
             ext = pins[Pin.EXT]
             irg = pins[Pin.IRG]
 
-            #self.put(self.samplenum, self.samplenum, self.out_ann,
-            #         [AnnoRowPos.WARN, [str(self.state)]])
+            if self.state != self.last_state:
+                #name = next(name for name, value in vars(State).items() if value == self.state)
+                name = str(self.state)
+                self.put(self.samplenum, self.samplenum, self.out_ann,
+                         [AnnoRowPos.WARN, [name]])
+                self.last_state = self.state
 
             if self.state == State.INIT:
                 self.state = State.IDLEwait
@@ -185,7 +190,7 @@ class Decoder(srd.Decoder):
             if self.state == State.IDLEwait:
                 # falling edge of IDLE ?
                 if idle == 0 and self.last_idle == 1:
-                    self.state = State.SXstarts
+                    self.state = State.SXwaitForPhiTrue
                     # keep starting sample for later use
                     self.idle_samplenum = self.samplenum
                     statenum = 0
@@ -195,8 +200,13 @@ class Decoder(srd.Decoder):
                     s_irg_values = 16 * [0]
                     s_irg_done = 16 * [0]
 
+            if self.state == State.SXwaitForPhiTrue:
+                # read s0 until phi1 is true
+                if phi1 == 1:
+                    self.state = State.SXstarts
+
             if self.state == State.SX:
-                if phi1 == 0:
+                if phi1 == 1:
                     valExt += ext
                     valIRG += irg
                 else:
@@ -223,8 +233,8 @@ class Decoder(srd.Decoder):
                 s_irg_values[statenum] = valIRG
                 s_irg_done[statenum] = 1
 
-                # negative edge of phi1
-                if phi1 == 0 and self.last_phi1 == 1:
+                # pos edge of phi1
+                if phi1 == 1 and self.last_phi1 == 0:
                     if statenum < 15:
                         # a new sx state starts
                         self.state = State.SXstarts
@@ -233,8 +243,9 @@ class Decoder(srd.Decoder):
                         # all states of this instruction cycle have been read, start over
                         statenum = 0
                         if idle == 0 and self.last_idle == 1:
-                            self.state = State.SXstarts
-                            self.idle_samplenum = self.samplenum
+                            #self.state = State.SXstarts
+                            #self.idle_samplenum = self.samplenum
+                            self.state = State.IDLEwait
                         else:
                             self.state = State.IDLEwait
 
@@ -267,9 +278,12 @@ class Decoder(srd.Decoder):
                         self.put(self.idle_samplenum, self.samplenum, self.out_ann,
                                  [AnnoRowPos.IRGWORDS, [irgBits]])
 
-                        reversed = irgBits[::-1]
-                        instructionPart = reversed[3:]
-                        annoText = self.get_instruction(instructionPart)
+                        instructionPart = irgBits[3:]
+                        reversed = instructionPart[::-1]
+                        #reversed = irgBits[::-1]
+                        #instructionPart = reversed[3:]
+
+                        annoText = self.get_instruction(reversed)
                         if annoText != "":
                             self.put(self.idle_samplenum, self.samplenum, self.out_ann,
                                      [AnnoRowPos.INSTRUCTION, [annoText]])
@@ -294,7 +308,8 @@ class Decoder(srd.Decoder):
 
     def get_instruction(self, irgBits):
         irgBits2 = irgBits.replace('.', '')
-        annoText = "" # irgBits2
+        #annoText = irgBits2
+        annoText = ""
         if "0101000011000" in irgBits2:  # "LOAD LSD OF KEYBOARD REG WITH R5 (R5 KR)" See Fig 5h in patent 4153937
             annoText = "R5 KR"
         if "0101000001000" in irgBits2:  # "LOAD R5 WITH LSD OF KEYBOARD REG (KR R5)" See Fig 5h in patent 4153937
@@ -311,7 +326,7 @@ class Decoder(srd.Decoder):
             annoText = "LOAD PC"
         if "0101000101110" in irgBits2:  # "UNLOAD PC" See Fig 5h in patent 4153937
             annoText = "UNLOAD PC"
-        if irgBits2 == "0 1010 000001010":  # ZERO IDLE"
+        if irgBits2 == "0101000000101":  # "ZERO IDLE" PARTIALLY .... TBD
             annoText = "ZERO IDLE"
         if "0101011111000" in irgBits2:
             annoText = "RAM_OP"
