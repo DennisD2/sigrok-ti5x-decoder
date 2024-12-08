@@ -25,7 +25,7 @@ class SamplerateError(Exception):
     pass
 
 class State:
-    INIT, IDLEwait, SXwait, SXwaitForPhiTrue, SXstarts, SX, SXends = range(7)
+    INIT, WAIT_FOR_IDLE_LO, SXwait, WAIT_FOR_PHI_HI, SX_START, SX, SX_END = range(7)
 
 class Pin:
     IDLE = 0
@@ -131,7 +131,8 @@ class Decoder(srd.Decoder):
         self.last_idle = 0
         self.last_phi1 = 0
         self.last_state = 0
-        self.idle_samplenum = 0
+        self.instruction_start_sample = 0
+        self.state_start_sample = 0
         self.sx_samplenum = 0
         self.mode = Mode.CALCULATE
 
@@ -164,6 +165,9 @@ class Decoder(srd.Decoder):
         s_irg_values = 16 * [0]
         s_irg_done = 16 * [0]
 
+        # initialize state machine
+        next_state = State.INIT
+
         while True:
             pins = self.wait()
             idle = pins[Pin.IDLE]
@@ -171,173 +175,74 @@ class Decoder(srd.Decoder):
             ext = pins[Pin.EXT]
             irg = pins[Pin.IRG]
 
-            if self.state != self.last_state:
+            if next_state != self.state:
                 #name = next(name for name, value in vars(State).items() if value == self.state)
                 name = str(self.state)
                 self.put(self.samplenum, self.samplenum, self.out_ann,
                          [AnnoRowPos.WARN, [name]])
-                self.last_state = self.state
+                self.state_start_sample = self.samplenum
+
+            # forward state machine
+            self.state = next_state
 
             if self.state == State.INIT:
-                self.state = State.IDLEwait
-                statenum = 0
+                # next state will wait for IDLE become LO
+                next_state = State.WAIT_FOR_IDLE_LO
                 # initialize last_* values
                 self.last_idle = idle
                 self.last_phi1 = phi1
                 self.put_text(self.samplenum, AnnoRowPos.STATE,
                               'INIT')
 
-            if self.state == State.IDLEwait:
+            # wait for IDLE become LO
+            if self.state == State.WAIT_FOR_IDLE_LO:
                 # falling edge of IDLE ?
                 if idle == 0 and self.last_idle == 1:
-                    self.state = State.SXwaitForPhiTrue
+                    next_state = State.WAIT_FOR_PHI_HI
                     # keep starting sample for later use
-                    self.idle_samplenum = self.samplenum
+                    self.instruction_start_sample = self.samplenum
+                    self.state_start_sample = self.samplenum
+                    self.sx_samplenum = self.samplenum
                     statenum = 0
 
-                    s_ext_values = 16 * [0]
-                    s_ext_done = 16 * [0]
-                    s_irg_values = 16 * [0]
-                    s_irg_done = 16 * [0]
-
-            if self.state == State.SXwaitForPhiTrue:
+            if self.state == State.WAIT_FOR_PHI_HI:
                 # read s0 until phi1 is true
                 if phi1 == 1:
-                    self.state = State.SXstarts
+                    next_state = State.SX_START
+                    # initialize bit value for sx state
+                    valExt = ext
+                    valIRG = irg
+
+            if self.state == State.SX_START:
+                # start location of sx state
+                self.sx_samplenum = self.state_start_sample
+
+                self.put_text(self.sx_samplenum, AnnoRowPos.STATE,
+                              's' + str(statenum))
+                next_state = State.SX
 
             if self.state == State.SX:
                 if phi1 == 1:
                     valExt += ext
                     valIRG += irg
                 else:
-                    self.state = State.SXends
+                    next_state = State.SX_END
 
-                if statenum == 1:
-                    if idle == 1:
-                        self.mode = Mode.CALCULATE
-                        self.put(self.samplenum, self.samplenum+4, self.out_ann,
-                                 [AnnoRowPos.CALC, ['CALCULATE']])
-                    else:
-                        self.mode = Mode.DISPLAY
-                        self.put(self.samplenum, self.samplenum+4, self.out_ann,
-                                 [AnnoRowPos.DISP, ['DISPLAY']])
-
-            if self.state == State.SXends:
-                self.put(self.sx_samplenum, self.sx_samplenum+4, self.out_ann,
+            if self.state == State.SX_END:
+                self.put(self.sx_samplenum, self.samplenum, self.out_ann,
                          [AnnoRowPos.EXTBITS, [str(valExt)]])
-                self.put(self.sx_samplenum, self.sx_samplenum+4, self.out_ann,
+                self.put(self.sx_samplenum, self.samplenum, self.out_ann,
                          [AnnoRowPos.IRGBITS, [str(valIRG)]])
-                
-                s_ext_values[statenum] = valExt
-                s_ext_done[statenum] = 1
-                s_irg_values[statenum] = valIRG
-                s_irg_done[statenum] = 1
 
-                # pos edge of phi1
-                if phi1 == 1 and self.last_phi1 == 0:
-                    if statenum < 15:
-                        # a new sx state starts
-                        self.state = State.SXstarts
-                        statenum += 1
-                    else:
-                        # all states of this instruction cycle have been read, start over
-                        statenum = 0
-                        if idle == 0 and self.last_idle == 1:
-                            #self.state = State.SXstarts
-                            #self.idle_samplenum = self.samplenum
-                            self.state = State.IDLEwait
-                        else:
-                            self.state = State.IDLEwait
-
-                    if statenum == 15:
-                        # Add last bit value
-                        extBits = ""
-                        i = 0
-                        for x in s_ext_values:
-                            if x>1:
-                                x=1
-                            extBits += str(x)
-                            i+=1
-                            if i>0 and i<16 and i % 4 == 0:
-                                extBits += "."
-
-                        irgBits = ""
-                        i = 0
-                        for x in s_irg_values:
-                            if x>1:
-                                x=1
-                            irgBits += str(x)
-                            i+=1
-                            if i>0 and i<16 and i % 4 == 0:
-                                irgBits += "."
-
-                        # EXT line value annotation
-                        self.put(self.idle_samplenum, self.samplenum, self.out_ann,
-                                 [AnnoRowPos.EXTWORDS, [extBits]])
-                        # IRG line value annotation
-                        self.put(self.idle_samplenum, self.samplenum, self.out_ann,
-                                 [AnnoRowPos.IRGWORDS, [irgBits]])
-
-                        instructionPart = irgBits[3:]
-                        reversed = instructionPart[::-1]
-                        #reversed = irgBits[::-1]
-                        #instructionPart = reversed[3:]
-
-                        annoText = self.get_instruction(reversed)
-                        if annoText != "":
-                            self.put(self.idle_samplenum, self.samplenum, self.out_ann,
-                                     [AnnoRowPos.INSTRUCTION, [annoText]])
-                        #annoText = self.get_instruction(irgBits[::-1])
-                        #if annoText != "":
-                        #    self.put(self.idle_samplenum, self.samplenum, self.out_ann,
-                        #             [AnnoRowPos.INSTRUCTION, [annoText + "(R)"]])
-
-            if self.state == State.SXstarts:
-                self.state = State.SX
-                # start location of sx state
-                self.sx_samplenum = self.samplenum
-                # initialize bit value for sx state
-                valExt = ext
-                valIRG = irg
-                self.put_text(self.samplenum, AnnoRowPos.STATE,
-                              's' + str(statenum))
+                if statenum < 15:
+                    # wait for next sx state
+                    next_state = State.WAIT_FOR_PHI_HI
+                    statenum += 1
+                else:
+                    # all states of this instruction cycle have been read, start over
+                    statenum = 0
+                    next_state = State.WAIT_FOR_IDLE_LO
 
             # update last_* values
             self.last_idle = idle
             self.last_phi1 = phi1
-
-    def get_instruction(self, irgBits):
-        irgBits2 = irgBits.replace('.', '')
-        #annoText = irgBits2
-        annoText = ""
-        if "0101000011000" in irgBits2:  # "LOAD LSD OF KEYBOARD REG WITH R5 (R5 KR)" See Fig 5h in patent 4153937
-            annoText = "R5 KR"
-        if "0101000001000" in irgBits2:  # "LOAD R5 WITH LSD OF KEYBOARD REG (KR R5)" See Fig 5h in patent 4153937
-            annoText = "KR R5"
-        if "0101000001100" in irgBits2:  # "LOAD KEYBOARD REG WITH EXT (EXT KR)" See Fig 5h in patent 4153937
-            annoText = "EXT KR"
-        if "0000000010101" in irgBits2:  # "PREG" See Fig 5h in patent 4153937
-            annoText = "PREG"
-        if "0101000001110" in irgBits2:  # "FETCH" See Fig 5h in patent 4153937
-            annoText = "FETCH"
-        if "0101000111110" in irgBits2:  # "FETCH HIGH" See Fig 5h in patent 4153937
-            annoText = "FETCH HIGH"
-        if "0101000011110" in irgBits2:  # "LOAD PC" See Fig 5h in patent 4153937
-            annoText = "LOAD PC"
-        if "0101000101110" in irgBits2:  # "UNLOAD PC" See Fig 5h in patent 4153937
-            annoText = "UNLOAD PC"
-        if irgBits2 == "0101000000101":  # "ZERO IDLE" PARTIALLY .... TBD
-            annoText = "ZERO IDLE"
-        if "0101011111000" in irgBits2:
-            annoText = "RAM_OP"
-        if "0101001001000" in irgBits2:
-            annoText = "CRD_OFF"
-        if "0101010001000" in irgBits2:
-            annoText = "PRT_CLEAR"
-        if "0101000001100" in irgBits2:
-            annoText = "MOV KR,EXT"
-        if irgBits2 == "0001111110000011":  # TRIGGER WORD 58/59 "BRANCH 0N C -1F"
-            annoText = "BRANCH 0N C -1F"
-        if "101000011000" in irgBits2: # testing code
-            annoText = "TEST"
-        return annoText
