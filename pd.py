@@ -161,6 +161,7 @@ class Decoder(srd.Decoder):
         valIRG = 0
 
         debug = 0 # or 1
+        decoded = 0
 
         s_ext_values = 16 * [0]
         s_irg_values = 16 * [0]
@@ -200,6 +201,12 @@ class Decoder(srd.Decoder):
                 # falling edge of IDLE ?
                 if idle == 0 and self.last_idle == 1:
                     next_state = State.WAIT_FOR_PHI_HI
+
+                    #calc cycle time
+                    cycle_duration = (self.samplenum - self.instruction_start_sample) / self.samplerate
+                    self.put(self.instruction_start_sample, self.samplenum, self.out_ann,
+                             [AnnoRowPos.TIMING, [normalize_time(cycle_duration)]])
+
                     # keep starting sample for later use
                     self.instruction_start_sample = self.samplenum
                     self.state_start_sample = self.samplenum
@@ -293,6 +300,9 @@ class Decoder(srd.Decoder):
 
                     annoText = self.get_instruction(reversed)
                     if annoText != "":
+                        decoded += 1
+                        if (decoded % 100 == 0):
+                            print("Decoded: " + str(decoded))
                         self.put(self.instruction_start_sample, self.samplenum, self.out_ann,
                                  [AnnoRowPos.INSTRUCTION, [annoText]])
                     #annoText = self.get_instruction(irgBits[::-1])
@@ -309,23 +319,23 @@ class Decoder(srd.Decoder):
         irgBits2 = irgBits.replace('.', '')
         #annoText = irgBits2
         annoText = ""
-        if "0101000011000" in irgBits2:  # "LOAD LSD OF KEYBOARD REG WITH R5 (R5 KR)" See Fig 5h in patent 4153937
+        if "0101000011000" in irgBits2:  # See Fig 5h in patent 4153937
             annoText = "R5 KR"
-        if "0101000001000" in irgBits2:  # "LOAD R5 WITH LSD OF KEYBOARD REG (KR R5)" See Fig 5h in patent 4153937
+        if "0101000001000" in irgBits2:  # "LOAD R5 WITH LSD OF KEYBOARD REG (KR R5)"
             annoText = "KR R5"
-        if "0101000001100" in irgBits2:  # "LOAD KEYBOARD REG WITH EXT (EXT KR)" See Fig 5h in patent 4153937
+        if "0101000001100" in irgBits2:  # "LOAD KEYBOARD REG WITH EXT (EXT KR)"
             annoText = "EXT KR"
-        if "0000000010101" in irgBits2:  # "PREG" See Fig 5h in patent 4153937
-            annoText = "PREG"
-        if "0101000001110" in irgBits2:  # "FETCH" See Fig 5h in patent 4153937
+        if "0000000010101" in irgBits2:  # "PREG" PARTIALLY
+            annoText = "SET PREG"
+        if "0101000001110" in irgBits2:  # "FETCH"
             annoText = "FETCH"
-        if "0101000111110" in irgBits2:  # "FETCH HIGH" See Fig 5h in patent 4153937
+        if "0101000111110" in irgBits2:  # "FETCH HIGH"
             annoText = "FETCH HIGH"
-        if "0101000011110" in irgBits2:  # "LOAD PC" See Fig 5h in patent 4153937
+        if "0101000011110" in irgBits2:  # "LOAD PC"
             annoText = "LOAD PC"
-        if "0101000101110" in irgBits2:  # "UNLOAD PC" See Fig 5h in patent 4153937
+        if "0101000101110" in irgBits2:  # "UNLOAD PC"
             annoText = "UNLOAD PC"
-        if irgBits2 == "0101000000101":  # "ZERO IDLE" PARTIALLY .... TBD
+        if irgBits2 == "0101000000101":  # "ZERO IDLE" PARTIALLY
             annoText = "ZERO IDLE"
         if "0101011111000" in irgBits2:
             annoText = "RAM_OP"
@@ -339,4 +349,57 @@ class Decoder(srd.Decoder):
             annoText = "BRANCH 0N C -1F"
         if "101000011000" in irgBits2: # testing code
             annoText = "TEST"
+
+        op1 = irgBits2[0:4]
+        op2 = irgBits2[5:9]
+        op3 = irgBits2[9:13]
+
+        if op1 == "0000" and op3 == "0000":
+            annoText = "TST FA(s)"
+        if op1 == "0000" and op3 == "0001":
+            annoText = "SET FA(s)"
+        if op1 == "0000" and op3 == "0010":
+            annoText = "CLR FA(s)"
+        if op1 == "0000" and op3 == "0011":
+            annoText = "INV FA(s)"
+        if op1 == "0000" and op3 == "0100":
+            annoText = "XCH FA(s),FB(s)"
+        if op1 == "0000" and op3 == "0101" and not (op2 == "0001"):
+            # op2==0001 is SET PREG, already handled
+            annoText = "SET KR(s)"
+        if op1 == "0000" and op3 == "0110":
+            annoText = "MOV FA(s),FB(s)"
+        if op1 == "0000" and op3 == "0111":
+            annoText = "MOV FA(s),R5"
+        if op1 == "0000" and op3 == "1000":
+            annoText = "TST FB(s)"
+        if op1 == "0000" and op3 == "1001":
+            annoText = "SET FB(s)"
+        if op1 == "0000" and op3 == "1010":
+            annoText = "CLR FB(s)"
+        if op1 == "0000" and op3 == "1011":
+            annoText = "INV FB(s)"
+        if op1 == "0000" and op3 == "1100":
+            annoText = "CMP FA(s),FB(s)"
+        #if op1 == "0000" and op3 == "1101":
+        #    annoText = "CLR KR(s)"
+        #if op1 == "0000" and op3 == "1110":
+        #    annoText = "MOV FB(s),FA(s)"
+        #if op1 == "0000" and op3 == "1111":
+        #    annoText = "MOV R5,FB"
+
+        # many lines skipped
+
+        if op1 == "1010" and op3 == "0000":
+            annoText = "WAIT digit"
+        if op1 == "1010" and op3 == "0001" and not (op2 == "0000"):
+            annoText = "CLR IDLE"
+
+        if op1 == "1010" and op3 == "0101":
+            annoText = "TST KR(s)"
+
+        if op1 == "1010" and op3 == "1001":
+            annoText = "SET IDLE"
+        if op1 == "1010" and op3 == "1111":
+            annoText = "REGISTER OP CODE"
         return annoText
