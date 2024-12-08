@@ -25,7 +25,7 @@ class SamplerateError(Exception):
     pass
 
 class State:
-    INIT, WAIT_FOR_IDLE_LO, SXwait, WAIT_FOR_PHI_HI, SX_START, SX, SX_END = range(7)
+    INIT, WAIT_FOR_IDLE_LO, WAIT_FOR_PHI_HI, SX_START, SX, SX_END = range(6)
 
 class Pin:
     IDLE = 0
