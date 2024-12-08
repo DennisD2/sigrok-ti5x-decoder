@@ -160,10 +160,10 @@ class Decoder(srd.Decoder):
         valExt = 0
         valIRG = 0
 
+        debug = 0 # or 1
+
         s_ext_values = 16 * [0]
-        s_ext_done = 16 * [0]
         s_irg_values = 16 * [0]
-        s_irg_done = 16 * [0]
 
         # initialize state machine
         next_state = State.INIT
@@ -176,11 +176,12 @@ class Decoder(srd.Decoder):
             irg = pins[Pin.IRG]
 
             if next_state != self.state:
-                #name = next(name for name, value in vars(State).items() if value == self.state)
-                name = str(self.state)
-                self.put(self.samplenum, self.samplenum, self.out_ann,
-                         [AnnoRowPos.WARN, [name]])
                 self.state_start_sample = self.samplenum
+                if debug>0:
+                    #name = next(name for name, value in vars(State).items() if value == self.state)
+                    name = str(self.state)
+                    self.put(self.samplenum, self.samplenum, self.out_ann,
+                             [AnnoRowPos.WARN, [name]])
 
             # forward state machine
             self.state = next_state
@@ -217,8 +218,9 @@ class Decoder(srd.Decoder):
                 # start location of sx state
                 self.sx_samplenum = self.state_start_sample
 
-                self.put_text(self.sx_samplenum, AnnoRowPos.STATE,
-                              's' + str(statenum))
+                if debug>0 or statenum==0:
+                    self.put_text(self.sx_samplenum, AnnoRowPos.STATE,
+                                  's' + str(statenum))
                 next_state = State.SX
 
             if self.state == State.SX:
@@ -228,11 +230,23 @@ class Decoder(srd.Decoder):
                 else:
                     next_state = State.SX_END
 
+                if statenum == 1:
+                    if idle == 1:
+                        self.mode = Mode.CALCULATE
+                        #self.put(self.samplenum, self.samplenum+4, self.out_ann,
+                        #         [AnnoRowPos.CALC, ['CALCULATE']])
+                    else:
+                        self.mode = Mode.DISPLAY
+                        #self.put(self.samplenum, self.samplenum+4, self.out_ann,
+                        #         [AnnoRowPos.DISP, ['DISPLAY']])
+
             if self.state == State.SX_END:
                 self.put(self.sx_samplenum, self.samplenum, self.out_ann,
                          [AnnoRowPos.EXTBITS, [str(valExt)]])
                 self.put(self.sx_samplenum, self.samplenum, self.out_ann,
                          [AnnoRowPos.IRGBITS, [str(valIRG)]])
+                s_ext_values[statenum] = valExt
+                s_irg_values[statenum] = valIRG
 
                 if statenum < 15:
                     # wait for next sx state
@@ -243,6 +257,86 @@ class Decoder(srd.Decoder):
                     statenum = 0
                     next_state = State.WAIT_FOR_IDLE_LO
 
+                if statenum == 15:
+                    # Add last bit value
+                    extBits = ""
+                    i = 0
+                    for x in s_ext_values:
+                        if x>1:
+                            x=1
+                        extBits += str(x)
+                        i+=1
+                        if i>0 and i<16 and i % 4 == 0:
+                            extBits += "."
+
+                    irgBits = ""
+                    i = 0
+                    for x in s_irg_values:
+                        if x>1:
+                            x=1
+                        irgBits += str(x)
+                        i+=1
+                        if i>0 and i<16 and i % 4 == 0:
+                            irgBits += "."
+
+                    # EXT line value annotation
+                    self.put(self.instruction_start_sample, self.samplenum, self.out_ann,
+                             [AnnoRowPos.EXTWORDS, [extBits]])
+                    # IRG line value annotation
+                    self.put(self.instruction_start_sample, self.samplenum, self.out_ann,
+                             [AnnoRowPos.IRGWORDS, [irgBits]])
+
+                    instructionPart = irgBits[3:]
+                    reversed = instructionPart[::-1]
+                    #reversed = irgBits[::-1]
+                    #instructionPart = reversed[3:]
+
+                    annoText = self.get_instruction(reversed)
+                    if annoText != "":
+                        self.put(self.instruction_start_sample, self.samplenum, self.out_ann,
+                                 [AnnoRowPos.INSTRUCTION, [annoText]])
+                    #annoText = self.get_instruction(irgBits[::-1])
+                    #if annoText != "":
+                    #    self.put(self.instruction_start_sample, self.samplenum, self.out_ann,
+                    #             [AnnoRowPos.INSTRUCTION, [annoText + "(R)"]])
+
             # update last_* values
             self.last_idle = idle
             self.last_phi1 = phi1
+
+
+    def get_instruction(self, irgBits):
+        irgBits2 = irgBits.replace('.', '')
+        #annoText = irgBits2
+        annoText = ""
+        if "0101000011000" in irgBits2:  # "LOAD LSD OF KEYBOARD REG WITH R5 (R5 KR)" See Fig 5h in patent 4153937
+            annoText = "R5 KR"
+        if "0101000001000" in irgBits2:  # "LOAD R5 WITH LSD OF KEYBOARD REG (KR R5)" See Fig 5h in patent 4153937
+            annoText = "KR R5"
+        if "0101000001100" in irgBits2:  # "LOAD KEYBOARD REG WITH EXT (EXT KR)" See Fig 5h in patent 4153937
+            annoText = "EXT KR"
+        if "0000000010101" in irgBits2:  # "PREG" See Fig 5h in patent 4153937
+            annoText = "PREG"
+        if "0101000001110" in irgBits2:  # "FETCH" See Fig 5h in patent 4153937
+            annoText = "FETCH"
+        if "0101000111110" in irgBits2:  # "FETCH HIGH" See Fig 5h in patent 4153937
+            annoText = "FETCH HIGH"
+        if "0101000011110" in irgBits2:  # "LOAD PC" See Fig 5h in patent 4153937
+            annoText = "LOAD PC"
+        if "0101000101110" in irgBits2:  # "UNLOAD PC" See Fig 5h in patent 4153937
+            annoText = "UNLOAD PC"
+        if irgBits2 == "0101000000101":  # "ZERO IDLE" PARTIALLY .... TBD
+            annoText = "ZERO IDLE"
+        if "0101011111000" in irgBits2:
+            annoText = "RAM_OP"
+        if "0101001001000" in irgBits2:
+            annoText = "CRD_OFF"
+        if "0101010001000" in irgBits2:
+            annoText = "PRT_CLEAR"
+        if "0101000001100" in irgBits2:
+            annoText = "MOV KR,EXT"
+        if irgBits2 == "0001111110000011":  # TRIGGER WORD 58/59 "BRANCH 0N C -1F"
+            annoText = "BRANCH 0N C -1F"
+        if "101000011000" in irgBits2: # testing code
+            annoText = "TEST"
+        return annoText
