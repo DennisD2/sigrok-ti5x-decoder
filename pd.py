@@ -177,15 +177,15 @@ class Decoder(srd.Decoder):
             irg = pins[Pin.IRG]
 
             if next_state != self.state:
+                # A new state was reached
                 self.state_start_sample = self.samplenum
+                # forward state machine
+                self.state = next_state
                 if debug>0:
                     #name = next(name for name, value in vars(State).items() if value == self.state)
                     name = str(self.state)
                     self.put(self.samplenum, self.samplenum, self.out_ann,
                              [AnnoRowPos.WARN, [name]])
-
-            # forward state machine
-            self.state = next_state
 
             if self.state == State.INIT:
                 # next state will wait for IDLE become LO
@@ -196,13 +196,13 @@ class Decoder(srd.Decoder):
                 self.put_text(self.samplenum, AnnoRowPos.STATE,
                               'INIT')
 
-            # wait for IDLE become LO
             if self.state == State.WAIT_FOR_IDLE_LO:
+                # wait for IDLE become LO
                 # falling edge of IDLE ?
                 if idle == 0 and self.last_idle == 1:
                     next_state = State.WAIT_FOR_PHI_HI
 
-                    #calc cycle time
+                    # calculate cycle time
                     cycle_duration = (self.samplenum - self.instruction_start_sample) / self.samplerate
                     self.put(self.instruction_start_sample, self.samplenum, self.out_ann,
                              [AnnoRowPos.TIMING, [normalize_time(cycle_duration)]])
@@ -210,7 +210,6 @@ class Decoder(srd.Decoder):
                     # keep starting sample for later use
                     self.instruction_start_sample = self.samplenum
                     self.state_start_sample = self.samplenum
-                    self.sx_samplenum = self.samplenum
                     statenum = 0
 
             if self.state == State.WAIT_FOR_PHI_HI:
@@ -295,8 +294,6 @@ class Decoder(srd.Decoder):
 
                     instructionPart = irgBits[3:]
                     reversed = instructionPart[::-1]
-                    #reversed = irgBits[::-1]
-                    #instructionPart = reversed[3:]
 
                     annoText = self.get_instruction(reversed)
                     if annoText != "":
