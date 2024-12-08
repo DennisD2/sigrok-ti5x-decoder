@@ -160,7 +160,7 @@ class Decoder(srd.Decoder):
         valExt = 0
         valIRG = 0
 
-        debug = 0 # or 1
+        debug = 1 # 0 or 1
         decoded = 0
 
         s_ext_values = 16 * [0]
@@ -199,7 +199,10 @@ class Decoder(srd.Decoder):
             if self.state == State.WAIT_FOR_IDLE_LO:
                 # wait for IDLE become LO
                 # falling edge of IDLE ?
-                if idle == 0 and self.last_idle == 1:
+                # Test change: if idle became LO during last phi1=1, we would miss this by checking for edge.
+                # So I check for IDLE==LO only, without edge check.
+                # OLD: if idle == 0: and self.last_idle == 1:
+                if idle == 0:
                     next_state = State.WAIT_FOR_PHI_HI
 
                     # calculate cycle time
