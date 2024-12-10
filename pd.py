@@ -483,7 +483,8 @@ class Decoder(srd.Decoder):
         if op1 == "1010" and op3 == "0100":
             annoText = "INK KR"
         if op1 == "1010" and op3 == "0101":
-            annoText = "TST KR(s)"
+            bit = get_nibble(op2)
+            annoText = "TST KR(" + str(bit) + ")"
 
         if op1 == "1010" and op2 == "0000" and op3 == "1110": # FETCH
             annoText = "IN LIB"
@@ -550,7 +551,5 @@ class Decoder(srd.Decoder):
             annoText = ".MMSD1"
         if op1 == "1111" :
             annoText = ".MAEX1"
-
-
 
         return annoText

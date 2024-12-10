@@ -14,14 +14,16 @@ back of the TI housing.
 Two example view of some early version of the decoder. Several instruction 
 cycles are shown. LA was used with 1 MS/sec and 5 MS/sec.
 
-![](bug-last-digit.png)
-![](bug-last-digit-verified.png)
+![](media/bug-last-digit.png)
+![](media/bug-last-digit-verified.png)
 
 ## TODOs
 * IO-lines processing not yet done
 * Instructions are only partially decoded to mnemonics
 
 ## Documentation
+* [Calculators TI–58/59 HW programming guide, by Hynek Sladky](docs/TI_58_59-HW-manual.pdf) This 
+document contains also instruction code tables
 
 ## Patents
 4153937	TI-59	 	1977	Microprocessor system having high order capability
