@@ -77,6 +77,49 @@ def normalize_time(t):
     else:
         return '%f' % t
 
+
+def get_digit(d):
+    print(d)
+    result = 0
+    if d[0]=="1":
+        result += 8
+    if d[1]=="1":
+        result += 4
+    if d[2]=="1":
+        result += 2
+    if d[3]=="1":
+        result += 1
+    print("Nibble: " + d + " -> " + str(result))
+    return result
+
+
+def get_address(d):
+    print(d)
+    result = 0
+    if d[0]=="1":
+        result += 512
+    if d[1]=="1":
+        result += 256
+    if d[2]=="1":
+        result += 128
+    if d[3]=="1":
+        result += 64
+    if d[4]=="1":
+        result += 32
+    if d[5]=="1":
+        result += 16
+    if d[6]=="1":
+        result += 8
+    if d[7]=="1":
+        result += 4
+    if d[8]=="1":
+        result += 2
+    if d[9]=="1":
+        result += 1
+    print("Address: " + d + " -> " + str(result))
+    return result
+
+
 class Decoder(srd.Decoder):
     api_version = 3
     id       = 'ti5x'
@@ -361,10 +404,11 @@ class Decoder(srd.Decoder):
 
         if firstbit=="1":
             lastbit = irgBits2[12]
+            address = get_address(irgBits2[1:12])
             if lastbit == "0":
-                return "BRA0 offs OR const"
+                return "BRA0 offs OR const +" + str(address)
             else:
-                return "BRA1 offs OR const"
+                return "BRA1 offs OR const -"+ str(address)
 
         #return ""
 
@@ -422,7 +466,7 @@ class Decoder(srd.Decoder):
         if op1 == "1001":
                 annoText = ".MANT"
         if op1 == "1010" and op3 == "0000":
-            annoText = "WAIT digit"
+            annoText = "WAIT DIGIT " + str(get_digit(op2))
         if op1 == "1010" and op3 == "0001":
             annoText = "CLR IDLE"
         if op1 == "1010" and op3 == "0010":
