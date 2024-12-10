@@ -370,32 +370,7 @@ class Decoder(srd.Decoder):
     def get_instruction(self, irgBits):
         irgBits2 = irgBits.replace('.', '')
         #print (irgBits2)
-        #annoText = irgBits2
         annoText = ""
-        if "0101000001100" in irgBits2:  # "LOAD KEYBOARD REG WITH EXT (EXT KR)"
-            annoText = "EXT KR"
-        if "0000000010101" in irgBits2:  # "PREG" PARTIALLY
-            annoText = "SET PREG"
-        if "0101000001110" in irgBits2:  # "FETCH"
-            annoText = "FETCH"
-        if "0101000111110" in irgBits2:  # "FETCH HIGH"
-            annoText = "FETCH HIGH"
-        if "0101000011110" in irgBits2:  # "LOAD PC"
-            annoText = "LOAD PC"
-        if "0101000101110" in irgBits2:  # "UNLOAD PC"
-            annoText = "UNLOAD PC"
-        if "0101011111000" in irgBits2:
-            annoText = "RAM_OP"
-        if "0101001001000" in irgBits2:
-            annoText = "CRD_OFF"
-        if "0101010001000" in irgBits2:
-            annoText = "PRT_CLEAR"
-        if "0101000001100" in irgBits2:
-            annoText = "MOV KR,EXT"
-        if irgBits2 == "0001111110000011":  # TRIGGER WORD 58/59 "BRANCH 0N C -1F"
-            annoText = "BRANCH 0N C -1F"
-        if "101000011000" in irgBits2: # testing code
-            annoText = "TEST"
 
         firstbit=irgBits2[0]
         op1 = irgBits2[1:5]
@@ -423,9 +398,13 @@ class Decoder(srd.Decoder):
             annoText = "INV FA(s)"
         if op1 == "0000" and op3 == "0100":
             annoText = "XCH FA(s),FB(s)"
+
         if op1 == "0000" and op3 == "0101" and not (op2 == "0001"):
-            # op2==0001 is SET PREG, already handled
-            annoText = "SET KR(s)"
+            if op2 == "0001":
+                annoText = "SET PREG"
+            else:
+                annoText = "SET KR(s)"
+
         if op1 == "0000" and op3 == "0110":
             annoText = "MOV FA(s),FB(s)"
         if op1 == "0000" and op3 == "0111":
@@ -478,12 +457,33 @@ class Decoder(srd.Decoder):
         if op1 == "1010" and op3 == "0101":
             annoText = "TST KR(s)"
 
-        #if op1 == "1010" and op3 == "0110":
-        #    annoText = "MOV R5,FA"
-        #if op1 == "1010" and op3 == "0110":
-        #    annoText = "MOV R5,FA"
+        if op1 == "1010" and op2 == "0000" and op3 == "1110": # FETCH
+            annoText = "IN LIB"
+        if op1 == "1010" and op2 == "0011" and op3 == "1110": # "FETCH HIGH"
+            annoText = "IN LIB_HIGH"
+        if op1 == "1010" and op2 == "0001" and op3 == "1110": # "LOAD PC"
+            annoText = "OUT LIB_PC"
+        if op1 == "1010" and op2 == "0010" and op3 == "1110": # "UNLOAD PC"
+            annoText = "IN LIB_PC"
+        if op1 == "1010" and op2 == "1111" and op3 == "1000":
+            annoText = "RAM_OP"
+        if op1 == "1010" and op2 == "0100" and op3 == "1000":
+            annoText = "CRD_OFF"
+        if op1 == "1010" and op2 == "1000" and op3 == "1000":
+            annoText = "PRT_CLEAR"
+        if op1 == "1010" and op2 == "0000" and op3 == "1100":
+            annoText = "MOV KR,EXT"
+        #if irgBits2 == "1 1001 1111 100 0":  # C1F8 TRIGGER WORD 58/59 "BRANCH 0N C -1F"
+        #    annoText = "BRANCH 0N C -1F"
+
+        if op1 == "1010" and op2[3] == "0" and op3 == "0110":
+            annoText = "MOV R5,FA TBD"
+        if op1 == "1010" and op2[3] == "1" and op3 == "0110":
+            annoText = "MOV R5,FB TBD"
+
         if op1 == "1010" and op3 == "0111":
-            annoText = "MOV R5,#const"
+            const = get_digit(op2)
+            annoText = "MOV R5,#" + str(const)
         if op1 == "1010" and op3 == "1000" and op2 == "0000":
             annoText = "MOV R5,KR"
         if op1 == "1010" and op3 == "1000" and op2 == "0001":
