@@ -78,7 +78,7 @@ def normalize_time(t):
         return '%f' % t
 
 
-def get_digit(d):
+def get_nibble(d):
     print(d)
     result = 0
     if d[0]=="1":
@@ -376,6 +376,7 @@ class Decoder(srd.Decoder):
         op1 = irgBits2[1:5]
         op2 = irgBits2[5:9]
         op3 = irgBits2[9:13]
+        #print( firstbit + "." + op1 + "." + op2 + "." + op3 )
 
         if firstbit=="1":
             lastbit = irgBits2[12]
@@ -387,9 +388,9 @@ class Decoder(srd.Decoder):
 
         #return ""
 
-        #print( firstbit + "." + op1 + "." + op2 + "." + op3 )
         if op1 == "0000" and op3 == "0000":
-            annoText = "TST FA(s)"
+            bit = get_nibble(op2)
+            annoText = "TST FA(" + str(bit) + ")"
         if op1 == "0000" and op3 == "0001":
             annoText = "SET FA(s)"
         if op1 == "0000" and op3 == "0010":
@@ -445,7 +446,7 @@ class Decoder(srd.Decoder):
         if op1 == "1001":
                 annoText = ".MANT"
         if op1 == "1010" and op3 == "0000":
-            annoText = "WAIT DIGIT " + str(get_digit(op2))
+            annoText = "WAIT DIGIT " + str(get_nibble(op2))
         if op1 == "1010" and op3 == "0001":
             annoText = "CLR IDLE"
         if op1 == "1010" and op3 == "0010":
@@ -482,7 +483,7 @@ class Decoder(srd.Decoder):
             annoText = "MOV R5,FB TBD"
 
         if op1 == "1010" and op3 == "0111":
-            const = get_digit(op2)
+            const = get_nibble(op2)
             annoText = "MOV R5,#" + str(const)
         if op1 == "1010" and op3 == "1000" and op2 == "0000":
             annoText = "MOV R5,KR"
