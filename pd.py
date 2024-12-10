@@ -163,6 +163,7 @@ class Decoder(srd.Decoder):
         debug = 1 # 0 or 1
         decoded = 0
         total = 0
+        total_instructions = 0
 
         s_ext_values = 16 * [0]
         s_irg_values = 16 * [0]
@@ -217,6 +218,7 @@ class Decoder(srd.Decoder):
                     self.instruction_start_sample = self.samplenum
                     self.state_start_sample = self.samplenum
                     statenum = 0
+                    total_instructions += 1
 
             if self.state == State.WAIT_FOR_PHI_HI:
                 # read s0 until phi1 is true
@@ -305,9 +307,11 @@ class Decoder(srd.Decoder):
                     if annoText != "":
                         decoded += 1
                         if (decoded % 100 == 0):
-                            print("Decoded: " + str(decoded) + " from total: " + str(total))
+                            print("Decoded: " + str(decoded) + " from total: " + str(total_instructions))
                         self.put(self.instruction_start_sample, self.samplenum, self.out_ann,
                                  [AnnoRowPos.INSTRUCTION, [annoText]])
+                    else:
+                        print("Undecoded instruction: " + reversed )
                     #annoText = self.get_instruction(irgBits[::-1])
                     #if annoText != "":
                     #    self.put(self.instruction_start_sample, self.samplenum, self.out_ann,
@@ -318,14 +322,13 @@ class Decoder(srd.Decoder):
             self.last_phi1 = phi1
 
 
+    # 1101011100000
+    # 1 1010 1110 0000
     def get_instruction(self, irgBits):
         irgBits2 = irgBits.replace('.', '')
+        #print (irgBits2)
         #annoText = irgBits2
         annoText = ""
-        if "0101000011000" in irgBits2:  # See Fig 5h in patent 4153937
-            annoText = "R5 KR"
-        if "0101000001000" in irgBits2:  # "LOAD R5 WITH LSD OF KEYBOARD REG (KR R5)"
-            annoText = "KR R5"
         if "0101000001100" in irgBits2:  # "LOAD KEYBOARD REG WITH EXT (EXT KR)"
             annoText = "EXT KR"
         if "0000000010101" in irgBits2:  # "PREG" PARTIALLY
@@ -338,8 +341,6 @@ class Decoder(srd.Decoder):
             annoText = "LOAD PC"
         if "0101000101110" in irgBits2:  # "UNLOAD PC"
             annoText = "UNLOAD PC"
-        if irgBits2 == "0101000000101":  # "ZERO IDLE" PARTIALLY
-            annoText = "ZERO IDLE"
         if "0101011111000" in irgBits2:
             annoText = "RAM_OP"
         if "0101001001000" in irgBits2:
@@ -353,10 +354,21 @@ class Decoder(srd.Decoder):
         if "101000011000" in irgBits2: # testing code
             annoText = "TEST"
 
-        op1 = irgBits2[0:4]
+        firstbit=irgBits2[0]
+        op1 = irgBits2[1:5]
         op2 = irgBits2[5:9]
         op3 = irgBits2[9:13]
 
+        if firstbit=="1":
+            lastbit = irgBits2[12]
+            if lastbit == "0":
+                return "BRA0 offs OR const"
+            else:
+                return "BRA1 offs OR const"
+
+        #return ""
+
+        #print( firstbit + "." + op1 + "." + op2 + "." + op3 )
         if op1 == "0000" and op3 == "0000":
             annoText = "TST FA(s)"
         if op1 == "0000" and op3 == "0001":
@@ -384,22 +396,79 @@ class Decoder(srd.Decoder):
             annoText = "INV FB(s)"
         if op1 == "0000" and op3 == "1100":
             annoText = "CMP FA(s),FB(s)"
-        #if op1 == "0000" and op3 == "1101":
-        #    annoText = "CLR KR(s)"
-        #if op1 == "0000" and op3 == "1110":
-        #    annoText = "MOV FB(s),FA(s)"
-        #if op1 == "0000" and op3 == "1111":
-        #    annoText = "MOV R5,FB"
+        if op1 == "0000" and op3 == "1101":
+            annoText = "CLR KR(s)"
+        if op1 == "0000" and op3 == "1110":
+            annoText = "MOV FB(s),FA(s)"
+        if op1 == "0000" and op3 == "1111":
+            annoText = "MOV R5,FB"
 
-        # many lines skipped
-
+        if op1 == "0001":
+            annoText = ".ALL"
+        if op1 == "0010":
+            annoText = ".DPT"
+        if op1 == "0011":
+            annoText = ".DPT1"
+        if op1 == "0100":
+            annoText = ".DPTC"
+        if op1 == "0101":
+            annoText = ".LLSD1"
+        if op1 == "0110":
+            annoText = ".EXP"
+        if op1 == "0111":
+            annoText = ".EXP1"
+        if op1 == "1000":
+            annoText = ".KEY mask"
+        if op1 == "1001":
+                annoText = ".MANT"
         if op1 == "1010" and op3 == "0000":
             annoText = "WAIT digit"
-        if op1 == "1010" and op3 == "0001" and not (op2 == "0000"):
+        if op1 == "1010" and op3 == "0001":
             annoText = "CLR IDLE"
-
+        if op1 == "1010" and op3 == "0010":
+            annoText = "CLR FA"
+        if op1 == "1010" and op3 == "0011":
+            annoText = "WAIT BUSY"
+        if op1 == "1010" and op3 == "0100":
+            annoText = "INK KR"
         if op1 == "1010" and op3 == "0101":
             annoText = "TST KR(s)"
+
+        #if op1 == "1010" and op3 == "0110":
+        #    annoText = "MOV R5,FA"
+        #if op1 == "1010" and op3 == "0110":
+        #    annoText = "MOV R5,FA"
+        if op1 == "1010" and op3 == "0111":
+            annoText = "MOV R5,#const"
+        if op1 == "1010" and op3 == "1000" and op2 == "0000":
+            annoText = "MOV R5,KR"
+        if op1 == "1010" and op3 == "1000" and op2 == "0001":
+            annoText = "MOV KR,R5"
+
+        if op1 == "1010" and op3 == "1000" and op2 == "1001":
+            annoText = "PRT_STEP"
+
+        if op1 == "1010" and op3 == "1010":
+            annoText = "CLR FB"
+        if op1 == "1010" and op3 == "1011":
+            annoText = "TST BUSY"
+        if op1 == "1010" and op3 == "1100":
+            annoText = "MOV KR,EXT"
+        if op1 == "1010" and op3 == "1101":
+            annoText = "XCH KR,SR"
+        if op1 == "1010" and op3 == "1110":
+            annoText = "NO-OP"
+        if op1 == "1011" :
+            annoText = ".MLSD5"
+        if op1 == "1100" :
+            annoText = ".MAEX"
+        if op1 == "1101" :
+            annoText = ".MLSD1"
+        if op1 == "1110" :
+            annoText = ".MMSD1"
+        if op1 == "1111" :
+            annoText = ".MAEX1"
+
 
         if op1 == "1010" and op3 == "1001":
             annoText = "SET IDLE"

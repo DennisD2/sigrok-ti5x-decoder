@@ -25,3 +25,11 @@ cycles are shown. LA was used with 1 MS/sec and 5 MS/sec.
 
 ## Patents
 4153937	TI-59	 	1977	Microprocessor system having high order capability
+
+
+## Undecoded so far:
+```
+"TI5x": Error cleared
+Acquisition took 0.14 s
+
+```
