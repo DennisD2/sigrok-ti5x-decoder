@@ -121,7 +121,7 @@ def get_address(d):
 
 
 def get_register(d):
-    print(d)
+    #print(d)
     result = 0
     if d[0]=="1":
         result += 4
@@ -129,7 +129,7 @@ def get_register(d):
         result += 2
     if d[2]=="1":
         result += 1
-    print("Register: " + d + " -> " + str(result))
+    #print("Register: " + d + " -> " + str(result))
     return result
 
 
@@ -362,8 +362,8 @@ class Decoder(srd.Decoder):
                     annoText = self.get_instruction(reversed)
                     if annoText != "":
                         decoded += 1
-                        if (decoded % 100 == 0):
-                            print("Decoded: " + str(decoded) + " from total: " + str(total_instructions))
+                        #if (decoded % 100 == 0):
+                        #    print("Decoded: " + str(decoded) + " from total: " + str(total_instructions))
                         self.put(self.instruction_start_sample, self.samplenum, self.out_ann,
                                  [AnnoRowPos.INSTRUCTION, [annoText]])
                     else:
@@ -567,13 +567,39 @@ class Decoder(srd.Decoder):
 
         # ALU operations
         if op1 == "1111" :
+            print(irgBits2)
             annoText = ".MAEX1"
+
+            opPart = ""
+            operandPart = ""
+            destPart = ""
+
             if op2 == "0000":
-                if op3[0] == "0": annoText += " ADD _,A,#const"
-            else:
-                annoText += " SUB _,A,#const"
+                operandPart="A,#const"
+                if op3[0] == "0":
+                    opPart="ADD" # annoText += " ADD _,A,#const"
+                else:
+                    opPart="SUB" # SUB _,A,#const"
+
+            if op2 == "1111":
+                operandPart="A,#const"
+                if op3[0] == "0":
+                    opPart="ADD" # annoText += " ADD _,A,#const"
+                else:
+                    opPart="SUB" # SUB _,A,#const"
+
             op3part = op3[1:]
-            if op3part == "000": annoText += " sum -> A"
+            if op3part == "000": destPart = "A"
+            if op3part == "001": destPart = "B"
+            if op3part == "010": destPart = "C"
+            if op3part == "011": destPart = "D"
+            if op3part == "100": destPart = "E"
+            if op3part == "101": destPart = "F"
+            if op3part == "110": destPart = "G"
+            if op3part == "111": destPart = "H"
+
+            annoText += " " + opPart + " " + destPart + "," + operandPart
+            print(annoText)
 
         #if irgBits2 == "1 1001 1111 100 0":  # C1F8 TRIGGER WORD 58/59 "BRANCH 0N C -1F"
         #    annoText = "BRANCH 0N C -1F"
