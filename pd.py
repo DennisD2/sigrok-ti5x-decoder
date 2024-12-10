@@ -79,7 +79,7 @@ def normalize_time(t):
 
 
 def get_nibble(d):
-    print(d)
+    #print(d)
     result = 0
     if d[0]=="1":
         result += 8
@@ -89,12 +89,12 @@ def get_nibble(d):
         result += 2
     if d[3]=="1":
         result += 1
-    print("Nibble: " + d + " -> " + str(result))
+    #print("Nibble: " + d + " -> " + str(result))
     return result
 
 
 def get_address(d):
-    print(d)
+    #print(d)
     result = 0
     if d[0]=="1":
         result += 512
@@ -116,7 +116,20 @@ def get_address(d):
         result += 2
     if d[9]=="1":
         result += 1
-    print("Address: " + d + " -> " + str(result))
+    #print("Address: " + d + " -> " + str(result))
+    return result
+
+
+def get_register(d):
+    print(d)
+    result = 0
+    if d[0]=="1":
+        result += 4
+    if d[1]=="1":
+        result += 2
+    if d[2]=="1":
+        result += 1
+    print("Register: " + d + " -> " + str(result))
     return result
 
 
@@ -365,8 +378,6 @@ class Decoder(srd.Decoder):
             self.last_phi1 = phi1
 
 
-    # 1101011100000
-    # 1 1010 1110 0000
     def get_instruction(self, irgBits):
         irgBits2 = irgBits.replace('.', '')
         #print (irgBits2)
@@ -392,40 +403,55 @@ class Decoder(srd.Decoder):
             bit = get_nibble(op2)
             annoText = "TST FA(" + str(bit) + ")"
         if op1 == "0000" and op3 == "0001":
-            annoText = "SET FA(s)"
+            bit = get_nibble(op2)
+            annoText = "SET FA(" + str(bit) + ")"
         if op1 == "0000" and op3 == "0010":
-            annoText = "CLR FA(s)"
+            bit = get_nibble(op2)
+            annoText = "CLR FA(" + str(bit) + ")"
         if op1 == "0000" and op3 == "0011":
-            annoText = "INV FA(s)"
+            bit = get_nibble(op2)
+            annoText = "INV FA(" + str(bit) + ")"
         if op1 == "0000" and op3 == "0100":
-            annoText = "XCH FA(s),FB(s)"
+            bit = str(get_nibble(op2))
+            annoText = "XCH FA(" + bit +  "),FB(" + bit + ")"
 
         if op1 == "0000" and op3 == "0101" and not (op2 == "0001"):
             if op2 == "0001":
                 annoText = "SET PREG"
             else:
-                annoText = "SET KR(s)"
+                bit = get_nibble(op2)
+                annoText = "SET KR(" + str(bit) + ")"
 
         if op1 == "0000" and op3 == "0110":
-            annoText = "MOV FA(s),FB(s)"
+            bit = str(get_nibble(op2))
+            annoText = "MOV FA(" + bit +  "),FB(" + bit + ")"
         if op1 == "0000" and op3 == "0111":
-            annoText = "MOV FA(s),R5"
+            bit = get_nibble(op2)
+            annoText = "MOV FA(" + str(bit) + "),R5"
         if op1 == "0000" and op3 == "1000":
-            annoText = "TST FB(s)"
+            bit = get_nibble(op2)
+            annoText = "TST FB(" + str(bit) + ")"
         if op1 == "0000" and op3 == "1001":
-            annoText = "SET FB(s)"
+            bit = get_nibble(op2)
+            annoText = "SET FB(" + str(bit) + ")"
         if op1 == "0000" and op3 == "1010":
-            annoText = "CLR FB(s)"
+            bit = get_nibble(op2)
+            annoText = "CLR FB(" + str(bit) + ")"
         if op1 == "0000" and op3 == "1011":
-            annoText = "INV FB(s)"
+            bit = get_nibble(op2)
+            annoText = "INV FB(" + str(bit) + ")"
         if op1 == "0000" and op3 == "1100":
-            annoText = "CMP FA(s),FB(s)"
+            bit = str(get_nibble(op2))
+            annoText = "CMP FA(" + bit +  "),FB(" + bit + ")"
         if op1 == "0000" and op3 == "1101":
-            annoText = "CLR KR(s)"
+            bit = get_nibble(op2)
+            annoText = "CLR KR(" + str(bit) + ")"
         if op1 == "0000" and op3 == "1110":
-            annoText = "MOV FB(s),FA(s)"
+            bit = str(get_nibble(op2))
+            annoText = "MOV FB(" + bit +  "),FA(" + bit + ")"
         if op1 == "0000" and op3 == "1111":
-            annoText = "MOV R5,FB"
+            bit = get_nibble(op2)
+            annoText = "MOV R5,FB (" + str(bit) + ")"
 
         if op1 == "0001":
             annoText = ".ALL"
@@ -442,13 +468,14 @@ class Decoder(srd.Decoder):
         if op1 == "0111":
             annoText = ".EXP1"
         if op1 == "1000":
-            annoText = ".KEY mask"
+            annoText = "KEY mask"
         if op1 == "1001":
                 annoText = ".MANT"
         if op1 == "1010" and op3 == "0000":
             annoText = "WAIT DIGIT " + str(get_nibble(op2))
         if op1 == "1010" and op3 == "0001":
-            annoText = "CLR IDLE"
+            bit = get_nibble(op2)
+            annoText = "CLR IDLE (" + str(bit) + ")"
         if op1 == "1010" and op3 == "0010":
             annoText = "CLR FA"
         if op1 == "1010" and op3 == "0011":
@@ -493,6 +520,8 @@ class Decoder(srd.Decoder):
         if op1 == "1010" and op3 == "1000" and op2 == "1001":
             annoText = "PRT_STEP"
 
+        if op1 == "1010" and op3 == "1001":
+            annoText = "SET IDLE"
         if op1 == "1010" and op3 == "1010":
             annoText = "CLR FB"
         if op1 == "1010" and op3 == "1011":
@@ -503,6 +532,14 @@ class Decoder(srd.Decoder):
             annoText = "XCH KR,SR"
         if op1 == "1010" and op3 == "1110":
             annoText = "NO-OP"
+
+        if op1 == "1010" and op3 == "1111":
+            register = get_register(op2[0:3])
+            if op2[3] == "0":
+                annoText = "REG WRITE(" + str(register) + ")"
+            else:
+                annoText = "REG READ " + str(register) + ")"
+
         if op1 == "1011" :
             annoText = ".MLSD5"
         if op1 == "1100" :
@@ -515,8 +552,5 @@ class Decoder(srd.Decoder):
             annoText = ".MAEX1"
 
 
-        if op1 == "1010" and op3 == "1001":
-            annoText = "SET IDLE"
-        if op1 == "1010" and op3 == "1111":
-            annoText = "REGISTER OP CODE"
+
         return annoText
