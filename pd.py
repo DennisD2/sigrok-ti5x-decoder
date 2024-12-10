@@ -162,6 +162,7 @@ class Decoder(srd.Decoder):
 
         debug = 1 # 0 or 1
         decoded = 0
+        total = 0
 
         s_ext_values = 16 * [0]
         s_irg_values = 16 * [0]
@@ -175,6 +176,8 @@ class Decoder(srd.Decoder):
             phi1 = pins[Pin.PHI1]
             ext = pins[Pin.EXT]
             irg = pins[Pin.IRG]
+
+            total += 1
 
             if next_state != self.state:
                 # A new state was reached
@@ -302,7 +305,7 @@ class Decoder(srd.Decoder):
                     if annoText != "":
                         decoded += 1
                         if (decoded % 100 == 0):
-                            print("Decoded: " + str(decoded))
+                            print("Decoded: " + str(decoded) + " from total: " + str(total))
                         self.put(self.instruction_start_sample, self.samplenum, self.out_ann,
                                  [AnnoRowPos.INSTRUCTION, [annoText]])
                     #annoText = self.get_instruction(irgBits[::-1])
