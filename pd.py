@@ -426,8 +426,7 @@ class Decoder(srd.Decoder):
             bit = str(get_nibble(op2))
             annoText = "MOV FA(" + bit +  "),FB(" + bit + ")"
         if op1 == "0000" and op3 == "0111":
-            bit = get_nibble(op2)
-            annoText = "MOV FA(" + str(bit) + "),R5"
+            annoText = "MOV FA,R5"
         if op1 == "0000" and op3 == "1000":
             bit = get_nibble(op2)
             annoText = "TST FB(" + str(bit) + ")"
@@ -450,8 +449,7 @@ class Decoder(srd.Decoder):
             bit = str(get_nibble(op2))
             annoText = "MOV FB(" + bit +  "),FA(" + bit + ")"
         if op1 == "0000" and op3 == "1111":
-            bit = get_nibble(op2)
-            annoText = "MOV R5,FB (" + str(bit) + ")"
+            annoText = "MOV R5,FB"
 
         if op1 == "0001":
             annoText = ".ALL"
@@ -474,8 +472,7 @@ class Decoder(srd.Decoder):
         if op1 == "1010" and op3 == "0000":
             annoText = "WAIT DIGIT " + str(get_nibble(op2))
         if op1 == "1010" and op3 == "0001":
-            bit = get_nibble(op2)
-            annoText = "CLR IDLE (" + str(bit) + ")"
+            annoText = "CLR IDLE"
         if op1 == "1010" and op3 == "0010":
             annoText = "CLR FA"
         if op1 == "1010" and op3 == "0011":
@@ -486,30 +483,14 @@ class Decoder(srd.Decoder):
             bit = get_nibble(op2)
             annoText = "TST KR(" + str(bit) + ")"
 
-        if op1 == "1010" and op2 == "0000" and op3 == "1110": # FETCH
-            annoText = "IN LIB"
-        if op1 == "1010" and op2 == "0011" and op3 == "1110": # "FETCH HIGH"
-            annoText = "IN LIB_HIGH"
-        if op1 == "1010" and op2 == "0001" and op3 == "1110": # "LOAD PC"
-            annoText = "OUT LIB_PC"
-        if op1 == "1010" and op2 == "0010" and op3 == "1110": # "UNLOAD PC"
-            annoText = "IN LIB_PC"
-        if op1 == "1010" and op2 == "1111" and op3 == "1000":
-            annoText = "RAM_OP"
-        if op1 == "1010" and op2 == "0100" and op3 == "1000":
-            annoText = "CRD_OFF"
-        if op1 == "1010" and op2 == "1000" and op3 == "1000":
-            annoText = "PRT_CLEAR"
+
+
         if op1 == "1010" and op2 == "0000" and op3 == "1100":
             annoText = "MOV KR,EXT"
-        #if irgBits2 == "1 1001 1111 100 0":  # C1F8 TRIGGER WORD 58/59 "BRANCH 0N C -1F"
-        #    annoText = "BRANCH 0N C -1F"
-
         if op1 == "1010" and op2[3] == "0" and op3 == "0110":
-            annoText = "MOV R5,FA TBD"
+            annoText = "MOV R5,FA"
         if op1 == "1010" and op2[3] == "1" and op3 == "0110":
-            annoText = "MOV R5,FB TBD"
-
+            annoText = "MOV R5,FB"
         if op1 == "1010" and op3 == "0111":
             const = get_nibble(op2)
             annoText = "MOV R5,#" + str(const)
@@ -518,9 +499,34 @@ class Decoder(srd.Decoder):
         if op1 == "1010" and op3 == "1000" and op2 == "0001":
             annoText = "MOV KR,R5"
 
+        # card reader
+        if op1 == "1010" and op3 == "0010" and op2 == "1000":
+            annoText = "IN CRD"
+        if op1 == "1010" and op3 == "0011" and op2 == "1000":
+            annoText = "OUT CRD"
+        if op1 == "1010" and op2 == "0100" and op3 == "1000":
+            annoText = "CRD_OFF"
+        if op1 == "1010" and op2 == "0101" and op3 == "1000":
+            annoText = "CRD_READ"
+
+        # printer
+        if op1 == "1010" and op3 == "1000" and op2 == "0110":
+            annoText = "OUT PRT"
+        if op1 == "1010" and op3 == "1000" and op2 == "0111":
+            annoText = "OUT PRT_FUNC"
+        if op1 == "1010" and op2 == "1000" and op3 == "1000":
+            annoText = "PRT_CLEAR"
         if op1 == "1010" and op3 == "1000" and op2 == "1001":
             annoText = "PRT_STEP"
+        if op1 == "1010" and op3 == "1000" and op2 == "1010":
+            annoText = "PRT_PRINT"
+        if op1 == "1010" and op3 == "1000" and op2 == "1011":
+            annoText = "PRT_FEED"
+        if op1 == "1010" and op3 == "1000" and op2 == "1100":
+            annoText = "PRT_WRITE"
 
+        if op1 == "1010" and op2 == "1111" and op3 == "1000":
+            annoText = "RAM_OP"
         if op1 == "1010" and op3 == "1001":
             annoText = "SET IDLE"
         if op1 == "1010" and op3 == "1010":
@@ -533,7 +539,16 @@ class Decoder(srd.Decoder):
             annoText = "XCH KR,SR"
         if op1 == "1010" and op3 == "1110":
             annoText = "NO-OP"
+        if op1 == "1010" and op2 == "0000" and op3 == "1110": # FETCH
+            annoText = "IN LIB"
+        if op1 == "1010" and op2 == "0001" and op3 == "1110": # "LOAD PC"
+            annoText = "OUT LIB_PC"
+        if op1 == "1010" and op2 == "0010" and op3 == "1110": # "UNLOAD PC"
+            annoText = "IN LIB_PC"
+        if op1 == "1010" and op2 == "0011" and op3 == "1110": # "FETCH HIGH"
+            annoText = "IN LIB_HIGH"
 
+        # register access
         if op1 == "1010" and op3 == "1111":
             register = get_register(op2[0:3])
             if op2[3] == "0":
@@ -549,7 +564,18 @@ class Decoder(srd.Decoder):
             annoText = ".MLSD1"
         if op1 == "1110" :
             annoText = ".MMSD1"
+
+        # ALU operations
         if op1 == "1111" :
             annoText = ".MAEX1"
+            if op2 == "0000":
+                if op3[0] == "0": annoText += " ADD _,A,#const"
+            else:
+                annoText += " SUB _,A,#const"
+            op3part = op3[1:]
+            if op3part == "000": annoText += " sum -> A"
+
+        #if irgBits2 == "1 1001 1111 100 0":  # C1F8 TRIGGER WORD 58/59 "BRANCH 0N C -1F"
+        #    annoText = "BRANCH 0N C -1F"
 
         return annoText
