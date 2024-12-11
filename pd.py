@@ -580,6 +580,7 @@ class Decoder(srd.Decoder):
         opPart = ""
         operandPart = ""
         destPart = ""
+
         if op2 == "0000":
             operandPart = "A,#const"
             if op3[0] == "0":
@@ -696,5 +697,6 @@ class Decoder(srd.Decoder):
         annoText += " " + opPart + " " + destPart
         if operandPart != "":
             annoText += "," + operandPart
+
         print(annoText)
         return annoText
