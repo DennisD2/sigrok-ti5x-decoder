@@ -567,149 +567,134 @@ class Decoder(srd.Decoder):
 
         # ALU operations
         if op1 == "1111" :
-            print(irgBits2)
-            annoText = ".MAEX1"
-
-            opPart = ""
-            operandPart = ""
-            destPart = ""
-
-            if op2 == "0000":
-                operandPart="A,#const"
-                if op3[0] == "0":
-                    opPart="ADD"
-                else:
-                    opPart="SUB"
-
-            if op2 == "0001":
-                if op3[0] == "0":
-                    opPart="OR"
-                    operandPart="B,#const"
-                else:
-                    opPart="NEG"
-                    operandPart="B|#const"
-
-            if op2 == "0010":
-                operandPart="C,#const"
-                if op3[0] == "0":
-                    opPart="ADD"
-                else:
-                    opPart="SUB"
-
-            if op2 == "0001":
-                if op3[0] == "0":
-                    opPart="OR"
-                    operandPart="D,#const"
-                else:
-                    opPart="NEG"
-                    operandPart="D|#const"
-
-            if op2 == "0100":
-                operandPart="A[,#const]"
-                if op3[0] == "0":
-                    opPart="SHL"
-                else:
-                    opPart="SHR"
-
-            if op2 == "0101":
-                operandPart="B[,#const]"
-                if op3[0] == "0":
-                    opPart="SHL"
-                else:
-                    opPart="SHR"
-
-            if op2 == "0110":
-                operandPart="C[,#const]"
-                if op3[0] == "0":
-                    opPart="SHL"
-                else:
-                    opPart="SHR"
-
-            if op2 == "0111":
-                operandPart="D[,#const]"
-                if op3[0] == "0":
-                    opPart="SHL"
-                else:
-                    opPart="SHR"
-
-            if op2 == "1000":
-                operandPart="A,B[|#const]"
-                if op3[0] == "0":
-                    opPart="ADD"
-                else:
-                    opPart="SUB"
-
-            if op2 == "1001":
-                operandPart="C,B[|#const]"
-                if op3[0] == "0":
-                    opPart="ADD"
-                else:
-                    opPart="SUB"
-
-            if op2 == "1010":
-                operandPart="C,D[|#const]"
-                if op3[0] == "0":
-                    opPart="ADD"
-                else:
-                    opPart="SUB"
-
-            if op2 == "1011":
-                operandPart="A,D[|#const]"
-                if op3[0] == "0":
-                    opPart="ADD"
-                else:
-                    opPart="SUB"
-
-            if op2 == "1100":
-                operandPart="A,IO[|#const]"
-                if op3[0] == "0":
-                    opPart="ADD"
-                else:
-                    opPart="SUB"
-
-            if op2 == "1101":
-                opPart="MOV"
-                if op3[0] == "0":
-                    operandPart="#const"
-                else:
-                    operandPart="-#const"
-
-            if op2 == "1110":
-                operandPart="C,IO[|#const]"
-                if op3[0] == "0":
-                    opPart="ADD"
-                else:
-                    opPart="SUB"
-
-            if op2 == "1111":
-                operandPart= "R5[|#const]"
-                opPart="MOV"
-
-            op3part = op3[1:]
-            if op3part == "000": destPart = "A"
-            if op3part == "001": destPart = "IO"
-            if op3part == "010":
-                destPart = "A,B"
-                opPart="XCH"
-                operandPart=""
-            if op3part == "011": destPart = "B"
-            if op3part == "100": destPart = "C"
-            if op3part == "101":
-                destPart = "C,D"
-                opPart="XCH"
-                operandPart=""
-            if op3part == "110": destPart = "D"
-            if op3part == "111":
-                destPart = "A,E"
-                opPart="XCH"
-                operandPart=""
-
-            annoText += " " + opPart + " " + destPart
-            if operandPart != "":
-                annoText += "," + operandPart
-            print(annoText)
+            annoText = self.handle_alu_instructions(irgBits2, op2, op3)
 
         #if irgBits2 == "1 1001 1111 100 0":  # C1F8 TRIGGER WORD 58/59 "BRANCH 0N C -1F"
         #    annoText = "BRANCH 0N C -1F"
 
+        return annoText
+
+    def handle_alu_instructions(self, irgBits2, op2, op3):
+        print(irgBits2)
+        annoText = ".MAEX1"
+        opPart = ""
+        operandPart = ""
+        destPart = ""
+        if op2 == "0000":
+            operandPart = "A,#const"
+            if op3[0] == "0":
+                opPart = "ADD"
+            else:
+                opPart = "SUB"
+        if op2 == "0001":
+            if op3[0] == "0":
+                opPart = "OR"
+                operandPart = "B,#const"
+            else:
+                opPart = "NEG"
+                operandPart = "B|#const"
+        if op2 == "0010":
+            operandPart = "C,#const"
+            if op3[0] == "0":
+                opPart = "ADD"
+            else:
+                opPart = "SUB"
+        if op2 == "0001":
+            if op3[0] == "0":
+                opPart = "OR"
+                operandPart = "D,#const"
+            else:
+                opPart = "NEG"
+                operandPart = "D|#const"
+        if op2 == "0100":
+            operandPart = "A[,#const]"
+            if op3[0] == "0":
+                opPart = "SHL"
+            else:
+                opPart = "SHR"
+        if op2 == "0101":
+            operandPart = "B[,#const]"
+            if op3[0] == "0":
+                opPart = "SHL"
+            else:
+                opPart = "SHR"
+        if op2 == "0110":
+            operandPart = "C[,#const]"
+            if op3[0] == "0":
+                opPart = "SHL"
+            else:
+                opPart = "SHR"
+        if op2 == "0111":
+            operandPart = "D[,#const]"
+            if op3[0] == "0":
+                opPart = "SHL"
+            else:
+                opPart = "SHR"
+        if op2 == "1000":
+            operandPart = "A,B[|#const]"
+            if op3[0] == "0":
+                opPart = "ADD"
+            else:
+                opPart = "SUB"
+        if op2 == "1001":
+            operandPart = "C,B[|#const]"
+            if op3[0] == "0":
+                opPart = "ADD"
+            else:
+                opPart = "SUB"
+        if op2 == "1010":
+            operandPart = "C,D[|#const]"
+            if op3[0] == "0":
+                opPart = "ADD"
+            else:
+                opPart = "SUB"
+        if op2 == "1011":
+            operandPart = "A,D[|#const]"
+            if op3[0] == "0":
+                opPart = "ADD"
+            else:
+                opPart = "SUB"
+        if op2 == "1100":
+            operandPart = "A,IO[|#const]"
+            if op3[0] == "0":
+                opPart = "ADD"
+            else:
+                opPart = "SUB"
+        if op2 == "1101":
+            opPart = "MOV"
+            if op3[0] == "0":
+                operandPart = "#const"
+            else:
+                operandPart = "-#const"
+        if op2 == "1110":
+            operandPart = "C,IO[|#const]"
+            if op3[0] == "0":
+                opPart = "ADD"
+            else:
+                opPart = "SUB"
+        if op2 == "1111":
+            operandPart = "R5[|#const]"
+            opPart = "MOV"
+        op3part = op3[1:]
+        if op3part == "000": destPart = "A"
+        if op3part == "001": destPart = "IO"
+        if op3part == "010":
+            destPart = "A,B"
+            opPart = "XCH"
+            operandPart = ""
+        if op3part == "011": destPart = "B"
+        if op3part == "100": destPart = "C"
+        if op3part == "101":
+            destPart = "C,D"
+            opPart = "XCH"
+            operandPart = ""
+        if op3part == "110": destPart = "D"
+        if op3part == "111":
+            destPart = "A,E"
+            opPart = "XCH"
+            operandPart = ""
+        annoText += " " + opPart + " " + destPart
+        if operandPart != "":
+            annoText += "," + operandPart
+        print(annoText)
         return annoText
