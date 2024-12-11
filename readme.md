@@ -68,7 +68,7 @@ TODOs section below.
 ## TODOs
 * IO-lines processing not yet done
 * I am not sure at all that the decoding works correct. For example, the IO
-  lines show activity after all BRA instructions (maybe ok), but also after
+  lines show activity after all BRA (branch) instructions (seems ok), but also after
   many other instructions, which does not make sense to me. Notably, IO line
   activity can be seen after/during mask operations (like .MANT etc.), which looks
   strange to me. 
@@ -80,7 +80,7 @@ TODOs section below.
   document by Texas Instruments from 1978. Explains software/hardware protocol
   in detail, with focus on printer cradle.
 
-## Patents
+## Patents by Texas Instruments related to TI-5x calculators
 4153937	TI-59	 	1977	Microprocessor system having high order capability
 
 All patents that had been used are listed here: http://www.datamath.org/Patents.htm
