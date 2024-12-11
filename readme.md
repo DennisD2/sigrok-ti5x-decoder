@@ -44,17 +44,26 @@ In directory ```examples``` I've put two sigrok sample data dumps. These can
 be loaded by pulseview, the decoder then can be applied to them.
 
 * [examples/ti59-session001-4secs-5mhz-switch-on.*](examples): 
-This is a sample with length of 4 seconds from a well working TI59. The
-TI59 is being switched on. What can be seen in the sample is that the calculator
+This is a sample with length of 4 seconds from a well working TI-59. The
+TI-59 is being switched on. What can be seen in the sample is that the calculator
 does some initialization stuff, IDLE signal is in "CALCULATE" mode. After
 initialization, the calculator goes to "DISPLAY" mode, waiting for key presses.
 
 * [examples/ti58c-session000-5secs-switch-on-auswahl.*](examples): 
-This is a sample of about 5 seconds from a broken TI58C. The TI58C is being switched
+This is a sample of about 5 seconds from a broken TI58C. The TI-58C is being switched
 on. There is also an initialization section in CALCULATE mode and then the
 section where calculator seems to wait for key presses, then in DISPLAY mode.
 The calculator is broken, does not respond to key presses and displays arbitrary
 random data in display. 
+
+For both samples, the GND pin of the logic analyzer used was attached to Vdd.
+This was done because if being connected to calculators Vss (0 volts),
+the signals could not be detected. The Signals are PMOS and run between 
+0 volts and -15.6(=Vgg) / -10 volts (=Vdd). These values are too large for my logic analyzer
+KingST LA5032,
+which has maximum LO/HI threshold of +4 .. -4 volts.
+So I have used Vdd as "virtual GND" to take these samples. I am not sure if that leads to issues, see
+TODOs section below.
 
 ## TODOs
 * IO-lines processing not yet done
