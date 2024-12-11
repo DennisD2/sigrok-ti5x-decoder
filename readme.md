@@ -75,7 +75,7 @@ TODOs section below.
 
 ## Documentation
 * [Calculators TI–58/59 HW programming guide, by Hynek Sladky](docs/TI_58_59-HW-manual.pdf). This 
-  document contains a large bunch of vauable information and also instruction code tables
+  document contains a large bunch of valuable information and also instruction code tables
 * [TI PC-100A Interface Description](docs/TI_Calculator_Printer_Interface.pdf). Original
   document by Texas Instruments from 1978. Explains software/hardware protocol
   in detail, with focus on printer cradle.
@@ -83,5 +83,5 @@ TODOs section below.
 ## Patents by Texas Instruments related to TI-5x calculators
 * 4153937 "Microprocessor system having high order capability", 1977
 
-All patents that had been used are listed here: http://www.datamath.org/Patents.htm
+All patents that by Texas Instruments had been used are listed here: http://www.datamath.org/Patents.htm
 
