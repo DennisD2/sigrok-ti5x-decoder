@@ -50,7 +50,7 @@ does some initialization stuff, IDLE signal is in "CALCULATE" mode. After
 initialization, the calculator goes to "DISPLAY" mode, waiting for key presses.
 
 * [examples/ti58c-session000-5secs-switch-on-auswahl.*](examples): 
-This is a sample of about 5 seconds from a broken TI58C. The TI-58C is being switched
+This is a sample of about 5 seconds from a broken TI-58C. The TI-58C is being switched
 on. There is also an initialization section in CALCULATE mode and then the
 section where calculator seems to wait for key presses, then in DISPLAY mode.
 The calculator is broken, does not respond to key presses and displays arbitrary
@@ -81,7 +81,7 @@ TODOs section below.
   in detail, with focus on printer cradle.
 
 ## Patents by Texas Instruments related to TI-5x calculators
-4153937	TI-59	 	1977	Microprocessor system having high order capability
+* 4153937 "Microprocessor system having high order capability", 1977
 
 All patents that had been used are listed here: http://www.datamath.org/Patents.htm
 
