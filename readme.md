@@ -39,9 +39,30 @@ If you have named the Pins 0..7 with correct names (IDLE, EXT, IRG, IO8, IO4,
 IO2, IO1, PHI1), Pulseview will connect these pins directly to the decoder
 inputs and decoding will start.
 
+### Example input files
+In directory ```examples``` I've put two sigrok sample data dumps. These can
+be loaded by pulseview, the decoder then can be applied to them.
+
+* [examples/ti59-session001-4secs-5mhz-switch-on.*](examples/ti59-session001-4secs-5mhz-switch-on.*): 
+This is a sample with length of 4 seconds from a well working TI59. The
+TI59 is being switched on. What can be seen in the sample is that the calculator
+does some initialization stuff, IDLE signal is in "CALCULATE" mode. After
+initialization, the calculator goes to "DISPLAY" mode, waiting for key presses.
+
+* [examples/ti58c-session000-5secs-switch-on-auswahl.*](examples/ti58c-session000-5secs-switch-on-auswahl.*): 
+This is a sample of about 5 seconds from a boken TI58C. The TI58C is being switched
+on. There is also an initialization section in CALCULATE mode and then the
+section where calculator seems to wait for key presses, then in DISPLAY mode.
+The calculator is broken, does not respond to key presses and displays arbitrary
+random data in display. 
 
 ## TODOs
 * IO-lines processing not yet done
+* I am not sure at all that the decoding works correct. For example, the IO
+  lines show activity after all BRA instructions (maybe ok), but also after
+  many other instructions, which does not make sense to me. Notably, IO line
+  activity can be seen after/during mask operations (like .MANT etc.), which looks
+  strange to me. 
 
 ## Documentation
 * [Calculators TI–58/59 HW programming guide, by Hynek Sladky](docs/TI_58_59-HW-manual.pdf). This 
