@@ -50,7 +50,7 @@ does some initialization stuff, IDLE signal is in "CALCULATE" mode. After
 initialization, the calculator goes to "DISPLAY" mode, waiting for key presses.
 
 * [examples/ti58c-session000-5secs-switch-on-auswahl.*](examples/ti58c-session000-5secs-switch-on-auswahl.*): 
-This is a sample of about 5 seconds from a boken TI58C. The TI58C is being switched
+This is a sample of about 5 seconds from a broken TI58C. The TI58C is being switched
 on. There is also an initialization section in CALCULATE mode and then the
 section where calculator seems to wait for key presses, then in DISPLAY mode.
 The calculator is broken, does not respond to key presses and displays arbitrary
