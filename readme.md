@@ -42,7 +42,6 @@ inputs and decoding will start.
 
 ## TODOs
 * IO-lines processing not yet done
-* Instructions are only partially decoded to mnemonics
 
 ## Documentation
 * [Calculators TI–58/59 HW programming guide, by Hynek Sladky](docs/TI_58_59-HW-manual.pdf). This 

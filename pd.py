@@ -483,8 +483,6 @@ class Decoder(srd.Decoder):
             bit = get_nibble(op2)
             annoText = "TST KR(" + str(bit) + ")"
 
-
-
         if op1 == "1010" and op2 == "0000" and op3 == "1100":
             annoText = "MOV KR,EXT"
         if op1 == "1010" and op2[3] == "0" and op3 == "0110":
