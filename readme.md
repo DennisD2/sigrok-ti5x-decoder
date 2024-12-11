@@ -43,13 +43,13 @@ inputs and decoding will start.
 In directory ```examples``` I've put two sigrok sample data dumps. These can
 be loaded by pulseview, the decoder then can be applied to them.
 
-* [examples/ti59-session001-4secs-5mhz-switch-on.*](examples/ti59-session001-4secs-5mhz-switch-on.*): 
+* [examples/ti59-session001-4secs-5mhz-switch-on.*](examples): 
 This is a sample with length of 4 seconds from a well working TI59. The
 TI59 is being switched on. What can be seen in the sample is that the calculator
 does some initialization stuff, IDLE signal is in "CALCULATE" mode. After
 initialization, the calculator goes to "DISPLAY" mode, waiting for key presses.
 
-* [examples/ti58c-session000-5secs-switch-on-auswahl.*](examples/ti58c-session000-5secs-switch-on-auswahl.*): 
+* [examples/ti58c-session000-5secs-switch-on-auswahl.*](examples): 
 This is a sample of about 5 seconds from a broken TI58C. The TI58C is being switched
 on. There is also an initialization section in CALCULATE mode and then the
 section where calculator seems to wait for key presses, then in DISPLAY mode.
