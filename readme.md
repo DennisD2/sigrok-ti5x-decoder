@@ -83,5 +83,5 @@ TODOs section below.
 ## Patents by Texas Instruments related to TI-5x calculators
 * 4153937 "Microprocessor system having high order capability", 1977
 
-All patents that by Texas Instruments had been used are listed here: http://www.datamath.org/Patents.htm
+All patents that had been used by Texas Instruments are listed here: http://www.datamath.org/Patents.htm
 
