@@ -56,10 +56,10 @@ section where calculator seems to wait for key presses, then in DISPLAY mode.
 The calculator is broken, does not respond to key presses and displays arbitrary
 random data in display. 
 
-For both samples, the GND pin of the logic analyzer used was attached to Vdd.
+Note: For both samples, the GND pin of the logic analyzer used was attached to Vdd.
 This was done because if being connected to calculators Vss (0 volts),
 the signals could not be detected. The Signals are PMOS and run between 
-0 volts and -15.6(=Vgg) / -10 volts (=Vdd). These values are too large for my logic analyzer
+0 volts(=Vss) and -15.6(=Vgg) / -10 volts (=Vdd). These values are too large for my logic analyzer
 KingST LA5032,
 which has maximum LO/HI threshold of +4 .. -4 volts.
 So I have used Vdd as "virtual GND" to take these samples. I am not sure if that leads to issues, see
