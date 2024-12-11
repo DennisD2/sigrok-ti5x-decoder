@@ -1,4 +1,4 @@
-## TI5x (TI59, TI58, TI58C) pocket calculator decoder
+## TI5x (TI-59, TI-58, TI-58C) pocket calculator decoder
 My try to have a Sigrok based decoder for signals from the venerable
 pocket calculators made by texas Instruments. 
 
